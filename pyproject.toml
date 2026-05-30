@@ -7,6 +7,10 @@ readme = "README.md"
 
 [project.scripts]
 bahamut-secret-refresher = "bahamut_secret_refresher.update_actions_secret:main"
+bahamut-cookie-exporter = "bahamut_secret_refresher.export_bahamut_cookies:main"
+
+[project.optional-dependencies]
+export = ["DrissionPage"]
 
 [tool.pytest.ini_options]
 testpaths = []

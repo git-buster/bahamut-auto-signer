@@ -105,6 +105,40 @@ python scripts/update_actions_secret_with_gh.py
 Repository Settings > Secrets and variables > Actions > Secrets
 ```
 
+### 匯出 Cookie JSON
+
+如果還沒有 Cookie JSON，可以在本機使用內建工具匯出。這個步驟會開啟 Chromium，需要你在瀏覽器裡手動登入。
+
+```bash
+python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
+bahamut-cookie-exporter
+```
+
+如果你是下載原始碼，也可以執行：
+
+```bash
+python -m pip install DrissionPage
+python tools/export_bahamut_cookies.py
+```
+
+工具會依序開啟：
+
+```text
+https://www.gamer.com.tw/
+https://guild.gamer.com.tw/
+https://ani.gamer.com.tw/
+```
+
+登入並按 Enter 後，會輸出：
+
+```text
+baha_cookie_www.json   -> BAHA_COOKIE_JSON
+baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
+baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
+```
+
+把 JSON 檔案內容貼到 private workflow repository 的 GitHub Actions Secrets。不要把 JSON 檔案提交到任何 repository。
+
 ### 建議 Cookie Secret 結構
 
 保留手動匯出的完整 Cookie JSON 作為恢復來源，另存一個 workflow 自動更新的一行 Cookie：
@@ -223,6 +257,40 @@ Then check:
 Repository Settings > Secrets and variables > Actions > Secrets
 ```
 
+### Export Cookie JSON
+
+If you do not have Cookie JSON yet, use the built-in exporter locally. It opens Chromium and requires you to log in manually.
+
+```bash
+python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
+bahamut-cookie-exporter
+```
+
+If you downloaded the source code, you can also run:
+
+```bash
+python -m pip install DrissionPage
+python tools/export_bahamut_cookies.py
+```
+
+The tool opens:
+
+```text
+https://www.gamer.com.tw/
+https://guild.gamer.com.tw/
+https://ani.gamer.com.tw/
+```
+
+After you log in and press Enter, it writes:
+
+```text
+baha_cookie_www.json   -> BAHA_COOKIE_JSON
+baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
+baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
+```
+
+Paste the JSON file contents into GitHub Actions Secrets in your private workflow repository. Do not commit the JSON files to any repository.
+
 ### Recommended Cookie Secret Layout
 
 Keep your manually exported full Cookie JSON as the recovery source, and save the automatically refreshed one-line Cookie into a separate Secret:
@@ -340,6 +408,40 @@ python scripts/update_actions_secret_with_gh.py
 ```text
 Repository Settings > Secrets and variables > Actions > Secrets
 ```
+
+### 导出 Cookie JSON
+
+如果还没有 Cookie JSON，可以在本机使用内置工具导出。这个步骤会打开 Chromium，需要你在浏览器里手动登录。
+
+```bash
+python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
+bahamut-cookie-exporter
+```
+
+如果你是下载源码，也可以执行：
+
+```bash
+python -m pip install DrissionPage
+python tools/export_bahamut_cookies.py
+```
+
+工具会依次打开：
+
+```text
+https://www.gamer.com.tw/
+https://guild.gamer.com.tw/
+https://ani.gamer.com.tw/
+```
+
+登录并按 Enter 后，会输出：
+
+```text
+baha_cookie_www.json   -> BAHA_COOKIE_JSON
+baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
+baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
+```
+
+把 JSON 文件内容贴到 private workflow repository 的 GitHub Actions Secrets。不要把 JSON 文件提交到任何 repository。
 
 ### 建议 Cookie Secret 结构
 
