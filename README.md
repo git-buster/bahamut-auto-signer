@@ -10,6 +10,13 @@
 
 `scripts/update_actions_secret_with_gh.py` 會從暫存檔或環境變數讀取 Secret 值，然後透過 GitHub CLI 更新指定 repository 的 Actions Secret。
 
+也可以安裝後直接執行：
+
+```bash
+python -m pip install git+https://github.com/OWNER/REPO.git
+bahamut-secret-refresher
+```
+
 它會：
 
 - 拒絕寫入空值
@@ -121,6 +128,13 @@ The public repository should contain only this reusable helper and documentation
 
 `scripts/update_actions_secret_with_gh.py` reads a secret value from a temporary file or environment variable, then uses the GitHub CLI to update a repository Actions Secret.
 
+After installation, you can also run:
+
+```bash
+python -m pip install git+https://github.com/OWNER/REPO.git
+bahamut-secret-refresher
+```
+
 It:
 
 - refuses to write an empty value
@@ -231,6 +245,13 @@ This avoids overwriting a complete browser Cookie JSON with a smaller one-line C
 ### 功能
 
 `scripts/update_actions_secret_with_gh.py` 会从临时文件或环境变量读取 Secret 值，然后通过 GitHub CLI 更新指定 repository 的 Actions Secret。
+
+安装后也可以直接执行：
+
+```bash
+python -m pip install git+https://github.com/OWNER/REPO.git
+bahamut-secret-refresher
+```
 
 它会：
 

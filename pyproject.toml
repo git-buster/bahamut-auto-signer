@@ -5,5 +5,8 @@ description = "Helper script for updating GitHub Actions Secrets from workflow r
 requires-python = ">=3.10"
 readme = "README.md"
 
+[project.scripts]
+bahamut-secret-refresher = "bahamut_secret_refresher.update_actions_secret:main"
+
 [tool.pytest.ini_options]
 testpaths = []
