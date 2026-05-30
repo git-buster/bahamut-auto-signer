@@ -1,0 +1,9 @@
+[project]
+name = "bahamut-secret-refresher-helper"
+version = "0.1.0"
+description = "Helper script for updating GitHub Actions Secrets from workflow runs."
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.pytest.ini_options]
+testpaths = []
