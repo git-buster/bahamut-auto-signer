@@ -69,15 +69,18 @@ workflow 執行簽到時，如果程式捕獲到新的 Cookie，會把它寫到 
 
 ```text
 BAHA_REFRESHED_COOKIE
+BAHA_REFRESHED_GUILD_COOKIE
 ```
 
-下一次 workflow 會優先使用 `BAHA_REFRESHED_COOKIE`。如果它失效，刪除 `BAHA_REFRESHED_COOKIE`，重新匯出 Cookie JSON，更新 `BAHA_COOKIE_JSON`。
+下一次 workflow 會優先使用 `BAHA_REFRESHED_COOKIE` 和 `BAHA_REFRESHED_GUILD_COOKIE`。如果其中一個失效，刪除失效的 Secret，重新匯出 Cookie JSON，更新對應的 `BAHA_COOKIE_JSON` 或 `BAHA_GUILD_COOKIE_JSON`。
 
 建議保留這種結構：
 
 ```text
 BAHA_COOKIE_JSON       手動匯出的完整 Cookie JSON
 BAHA_REFRESHED_COOKIE  workflow 自動更新的一行 Cookie
+BAHA_GUILD_COOKIE_JSON 手動匯出的完整公會 Cookie JSON
+BAHA_REFRESHED_GUILD_COOKIE  workflow 自動更新的一行公會 Cookie
 ```
 
 不要直接用一行 Cookie 覆蓋完整的 `BAHA_COOKIE_JSON`。
@@ -214,15 +217,18 @@ When the workflow runs, the sign-in program may capture a newer Cookie and write
 
 ```text
 BAHA_REFRESHED_COOKIE
+BAHA_REFRESHED_GUILD_COOKIE
 ```
 
-The next workflow run should use `BAHA_REFRESHED_COOKIE` first. If it becomes invalid, delete `BAHA_REFRESHED_COOKIE`, export a fresh Cookie JSON, and update `BAHA_COOKIE_JSON`.
+The next workflow run should use `BAHA_REFRESHED_COOKIE` and `BAHA_REFRESHED_GUILD_COOKIE` first. If one becomes invalid, delete the invalid Secret, export a fresh Cookie JSON, and update the matching `BAHA_COOKIE_JSON` or `BAHA_GUILD_COOKIE_JSON`.
 
 Recommended layout:
 
 ```text
 BAHA_COOKIE_JSON       manually exported full Cookie JSON
 BAHA_REFRESHED_COOKIE  automatically updated one-line Cookie
+BAHA_GUILD_COOKIE_JSON manually exported full guild Cookie JSON
+BAHA_REFRESHED_GUILD_COOKIE  automatically updated one-line guild Cookie
 ```
 
 Do not overwrite full `BAHA_COOKIE_JSON` with a smaller one-line Cookie.
@@ -359,15 +365,18 @@ workflow 执行签到时，如果程序捕获到新的 Cookie，会把它写到 
 
 ```text
 BAHA_REFRESHED_COOKIE
+BAHA_REFRESHED_GUILD_COOKIE
 ```
 
-下一次 workflow 会优先使用 `BAHA_REFRESHED_COOKIE`。如果它失效，删除 `BAHA_REFRESHED_COOKIE`，重新导出 Cookie JSON，更新 `BAHA_COOKIE_JSON`。
+下一次 workflow 会优先使用 `BAHA_REFRESHED_COOKIE` 和 `BAHA_REFRESHED_GUILD_COOKIE`。如果其中一个失效，删除失效的 Secret，重新导出 Cookie JSON，更新对应的 `BAHA_COOKIE_JSON` 或 `BAHA_GUILD_COOKIE_JSON`。
 
 建议保留这种结构：
 
 ```text
 BAHA_COOKIE_JSON       手动导出的完整 Cookie JSON
 BAHA_REFRESHED_COOKIE  workflow 自动更新的一行 Cookie
+BAHA_GUILD_COOKIE_JSON 手动导出的完整公会 Cookie JSON
+BAHA_REFRESHED_GUILD_COOKIE  workflow 自动更新的一行公会 Cookie
 ```
 
 不要直接用一行 Cookie 覆盖完整的 `BAHA_COOKIE_JSON`。
