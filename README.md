@@ -2,42 +2,89 @@
 
 ## 繁體中文
 
-這個工具可以在 GitHub Actions workflow 裡，把一個新的值寫回指定的 GitHub Actions Secret。它適合用在 Cookie 型自動化：當你的簽到流程成功捕獲到更新後的 Cookie，就可以把它保存成 Secret，讓下一次 workflow 優先使用新的 Cookie。
+這是一個公開工具包，提供兩個命令：
 
-公開倉庫只應該放這個通用工具與說明文件。請不要提交真實 Cookie、Token、密碼、瀏覽器 Cookie JSON、瀏覽器 profile，或私人 workflow 設定。
-
-### 功能
-
-`scripts/update_actions_secret_with_gh.py` 會從暫存檔或環境變數讀取 Secret 值，然後透過 GitHub CLI 更新指定 repository 的 Actions Secret。
-
-也可以安裝後直接執行：
-
-```bash
-python -m pip install git+https://github.com/OWNER/REPO.git
+```text
+bahamut-cookie-exporter
 bahamut-secret-refresher
 ```
 
-它會：
+`bahamut-cookie-exporter` 用來在本機開啟 Chromium，讓使用者手動登入巴哈姆特後匯出 Cookie JSON。  
+`bahamut-secret-refresher` 用來在 GitHub Actions 裡，把 workflow 捕獲到的新 Cookie 寫回 GitHub Actions Secret。
 
-- 拒絕寫入空值
-- 在 GitHub Actions log 裡遮罩 Secret 值
-- 透過標準輸入把值傳給 `gh secret set`
-- 不主動列印 Cookie 或 Token 內容
+公開 repository 只應該放工具程式與教學文件。不要提交真實 Cookie、Token、密碼、Cookie JSON 檔案、瀏覽器 profile 或私人 workflow。
 
-### 限制
+### 安裝
 
-這個工具不能讓網站 session 永久有效。它只能在目前 session 仍被網站接受、且流程捕獲到新 Cookie 時，把新值保存起來。
+如果直接使用這個公開工具：
 
-它不能處理：
+```bash
+python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
+```
 
-- 網站要求完整重新登入
-- CAPTCHA、二次驗證、Cloudflare 驗證
-- 伺服器端主動撤銷 session
-- GitHub Token 過期或權限不足
+如果你 fork 或複製成自己的公開 repository，請把 `OWNER/REPO` 換成你的 repository：
 
-### GitHub Token 權限
+```bash
+python -m pip install "git+https://github.com/OWNER/REPO.git[export]"
+```
 
-建議建立 Fine-grained personal access token：
+### 匯出 Cookie JSON
+
+在自己的電腦執行：
+
+```bash
+bahamut-cookie-exporter
+```
+
+工具會開啟 Chromium，依序前往：
+
+```text
+https://www.gamer.com.tw/
+https://guild.gamer.com.tw/
+https://ani.gamer.com.tw/
+```
+
+你需要在瀏覽器裡正常登入。每個頁面確認登入後，回到終端機按 Enter，工具會輸出：
+
+```text
+baha_cookie_www.json   -> BAHA_COOKIE_JSON
+baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
+baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
+```
+
+把 JSON 檔案內容完整貼到私人 workflow repository 的 GitHub Actions Secrets。不要把 JSON 檔案提交到 GitHub。
+
+如果你下載了原始碼，也可以這樣執行：
+
+```bash
+python -m pip install DrissionPage
+python tools/export_bahamut_cookies.py
+```
+
+### 自動更新 Cookie 的原理
+
+第一次使用時，你手動把 `BAHA_COOKIE_JSON` 放到私人 workflow repository 的 Secrets。
+
+workflow 執行簽到時，如果程式捕獲到新的 Cookie，會把它寫到 runner 的暫存檔。接著 `bahamut-secret-refresher` 會把這個暫存檔內容更新到：
+
+```text
+BAHA_REFRESHED_COOKIE
+```
+
+下一次 workflow 會優先使用 `BAHA_REFRESHED_COOKIE`。如果它失效，刪除 `BAHA_REFRESHED_COOKIE`，重新匯出 Cookie JSON，更新 `BAHA_COOKIE_JSON`。
+
+建議保留這種結構：
+
+```text
+BAHA_COOKIE_JSON       手動匯出的完整 Cookie JSON
+BAHA_REFRESHED_COOKIE  workflow 自動更新的一行 Cookie
+```
+
+不要直接用一行 Cookie 覆蓋完整的 `BAHA_COOKIE_JSON`。
+
+### 建立 GitHub Token
+
+自動更新 GitHub Actions Secret 需要一個 Fine-grained personal access token。建立路徑：
 
 ```text
 GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token
@@ -50,7 +97,7 @@ Repository access:
   Only selected repositories
 
 Selected repository:
-  儲存 Actions Secrets 的私人 workflow repository
+  你的私人 workflow repository
 
 Repository permissions:
   Secrets: Read and write
@@ -63,65 +110,78 @@ Repository permissions:
 BAHA_SECRET_UPDATE_TOKEN
 ```
 
-### 腳本參數
+### Secret 更新命令
+
+`bahamut-secret-refresher` 需要這些環境變數：
 
 | 名稱 | 必填 | 說明 |
 | --- | --- | --- |
-| `SECRET_UPDATE_TOKEN` | 是 | 具備 repository Secrets 寫入權限的 Fine-grained Token。 |
+| `SECRET_UPDATE_TOKEN` | 是 | 可以更新 repository Secrets 的 Fine-grained Token。 |
 | `TARGET_REPOSITORY` | 是 | 目標 repository，格式為 `OWNER/REPO`。 |
-| `SECRET_NAME` | 是 | 要建立或更新的 Actions Secret 名稱。 |
+| `SECRET_NAME` | 是 | 要建立或更新的 Secret 名稱。 |
 | `SECRET_FILE` | 否 | 存放新 Secret 值的檔案。 |
 | `SECRET_VALUE` | 否 | 直接提供的新 Secret 值；未設定 `SECRET_FILE` 時使用。 |
 
-Cookie refresh workflow 建議使用 `SECRET_FILE`，把捕獲到的新 Cookie 放在 runner 暫存檔中，避免提交到 repository。
-
-### 本機測試
-
-請先用無害值測試，不要一開始就使用真實 Cookie。
-
-PowerShell：
-
-```powershell
-$env:SECRET_UPDATE_TOKEN = "your fine-grained token"
-$env:TARGET_REPOSITORY = "OWNER/REPO"
-$env:SECRET_NAME = "TEST_AUTO_UPDATED_SECRET"
-$env:SECRET_VALUE = "hello"
-python .\scripts\update_actions_secret_with_gh.py
-```
-
-Bash：
+先用無害值測試：
 
 ```bash
 export SECRET_UPDATE_TOKEN="your fine-grained token"
-export TARGET_REPOSITORY="OWNER/REPO"
+export TARGET_REPOSITORY="OWNER/PRIVATE_WORKFLOW_REPO"
 export SECRET_NAME="TEST_AUTO_UPDATED_SECRET"
 export SECRET_VALUE="hello"
-python scripts/update_actions_secret_with_gh.py
+bahamut-secret-refresher
 ```
 
-測試後到這裡確認：
+確認測試 Secret 可以建立後，再接入真實 workflow。
+
+### 限制
+
+這個工具不能保證 Cookie 永久有效。它只能在目前登入狀態仍被網站接受、且 workflow 捕獲到新 Cookie 時，幫你把新值保存起來。
+
+它不能處理：
+
+- 網站要求完整重新登入
+- CAPTCHA、二次驗證或 Cloudflare 驗證
+- 伺服器端主動撤銷 session
+- GitHub Token 過期或權限不足
+
+## English
+
+This public package provides two commands:
 
 ```text
-Repository Settings > Secrets and variables > Actions > Secrets
+bahamut-cookie-exporter
+bahamut-secret-refresher
 ```
 
-### 匯出 Cookie JSON
+`bahamut-cookie-exporter` opens Chromium locally so users can log in manually and export Bahamut Cookie JSON.  
+`bahamut-secret-refresher` updates a GitHub Actions Secret from a workflow after a refreshed Cookie is captured.
 
-如果還沒有 Cookie JSON，可以在本機使用內建工具匯出。這個步驟會開啟 Chromium，需要你在瀏覽器裡手動登入。
+The public repository should contain only tools and user documentation. Do not commit real Cookies, tokens, passwords, Cookie JSON files, browser profiles, or private workflows.
+
+### Install
+
+If you use this public tool directly:
 
 ```bash
 python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
+```
+
+If you fork or copy it to your own public repository, replace `OWNER/REPO`:
+
+```bash
+python -m pip install "git+https://github.com/OWNER/REPO.git[export]"
+```
+
+### Export Cookie JSON
+
+Run locally:
+
+```bash
 bahamut-cookie-exporter
 ```
 
-如果你是下載原始碼，也可以執行：
-
-```bash
-python -m pip install DrissionPage
-python tools/export_bahamut_cookies.py
-```
-
-工具會依序開啟：
+The tool opens Chromium and visits:
 
 ```text
 https://www.gamer.com.tw/
@@ -129,7 +189,7 @@ https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-登入並按 Enter 後，會輸出：
+Log in normally in the browser. After each page is logged in, return to the terminal and press Enter. The tool writes:
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
@@ -137,59 +197,39 @@ baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
 baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 ```
 
-把 JSON 檔案內容貼到 private workflow repository 的 GitHub Actions Secrets。不要把 JSON 檔案提交到任何 repository。
+Paste the JSON file contents into GitHub Actions Secrets in your private workflow repository. Do not commit JSON files to GitHub.
 
-### 建議 Cookie Secret 結構
-
-保留手動匯出的完整 Cookie JSON 作為恢復來源，另存一個 workflow 自動更新的一行 Cookie：
-
-```text
-BAHA_COOKIE_JSON       手動匯出的完整 Cookie JSON
-BAHA_REFRESHED_COOKIE  workflow 自動更新的一行 Cookie
-```
-
-下次運行時優先使用 `BAHA_REFRESHED_COOKIE`。如果它失效，刪除這個 Secret，重新匯出 Cookie JSON 並更新 `BAHA_COOKIE_JSON`。
-
-這樣可以避免把完整 Cookie JSON 覆蓋成不完整的一行 Cookie。
-
-## English
-
-This helper updates a GitHub Actions Secret from inside a workflow. It is useful for Cookie-based automation: when your workflow captures a refreshed Cookie, it can save that value as a Secret so the next run can use it first.
-
-The public repository should contain only this reusable helper and documentation. Do not commit real Cookies, tokens, passwords, exported browser Cookie JSON files, browser profiles, or private workflow configuration.
-
-### Features
-
-`scripts/update_actions_secret_with_gh.py` reads a secret value from a temporary file or environment variable, then uses the GitHub CLI to update a repository Actions Secret.
-
-After installation, you can also run:
+If you downloaded the source code, you can also run:
 
 ```bash
-python -m pip install git+https://github.com/OWNER/REPO.git
-bahamut-secret-refresher
+python -m pip install DrissionPage
+python tools/export_bahamut_cookies.py
 ```
 
-It:
+### How Automatic Cookie Refresh Works
 
-- refuses to write an empty value
-- masks the value in GitHub Actions logs
-- passes the value to `gh secret set` through standard input
-- does not print Cookie or token contents
+On the first setup, manually save `BAHA_COOKIE_JSON` in your private workflow repository Secrets.
 
-### Limits
+When the workflow runs, the sign-in program may capture a newer Cookie and write it to a temporary runner file. `bahamut-secret-refresher` then writes that temporary file back to:
 
-This helper cannot make a website session valid forever. It only saves a refreshed value when the current session is still accepted and the workflow captures a new Cookie.
+```text
+BAHA_REFRESHED_COOKIE
+```
 
-It cannot handle:
+The next workflow run should use `BAHA_REFRESHED_COOKIE` first. If it becomes invalid, delete `BAHA_REFRESHED_COOKIE`, export a fresh Cookie JSON, and update `BAHA_COOKIE_JSON`.
 
-- a required full login
-- CAPTCHA, two-factor verification, or Cloudflare challenges
-- server-side session revocation
-- an expired or under-permissioned GitHub token
+Recommended layout:
 
-### GitHub Token Permissions
+```text
+BAHA_COOKIE_JSON       manually exported full Cookie JSON
+BAHA_REFRESHED_COOKIE  automatically updated one-line Cookie
+```
 
-Create a Fine-grained personal access token:
+Do not overwrite full `BAHA_COOKIE_JSON` with a smaller one-line Cookie.
+
+### Create A GitHub Token
+
+Updating GitHub Actions Secrets requires a Fine-grained personal access token. Create it here:
 
 ```text
 GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token
@@ -202,78 +242,91 @@ Repository access:
   Only selected repositories
 
 Selected repository:
-  The private workflow repository that stores Actions Secrets
+  Your private workflow repository
 
 Repository permissions:
   Secrets: Read and write
   Metadata: Read-only
 ```
 
-Save the token in the private workflow repository as:
+Save the token in the private workflow repository Secret:
 
 ```text
 BAHA_SECRET_UPDATE_TOKEN
 ```
 
-### Script Settings
+### Secret Update Command
+
+`bahamut-secret-refresher` uses these environment variables:
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `SECRET_UPDATE_TOKEN` | Yes | Fine-grained token with repository Secrets write permission. |
+| `SECRET_UPDATE_TOKEN` | Yes | Fine-grained token allowed to update repository Secrets. |
 | `TARGET_REPOSITORY` | Yes | Target repository in `OWNER/REPO` format. |
-| `SECRET_NAME` | Yes | Name of the Actions Secret to create or update. |
+| `SECRET_NAME` | Yes | Secret name to create or update. |
 | `SECRET_FILE` | No | File containing the new Secret value. |
-| `SECRET_VALUE` | No | Direct value used when `SECRET_FILE` is not set. |
+| `SECRET_VALUE` | No | Direct Secret value, used when `SECRET_FILE` is not set. |
 
-For Cookie refresh workflows, `SECRET_FILE` is recommended because the refreshed Cookie can be stored in a temporary runner file and never committed.
-
-### Local Test
-
-Test with a harmless value before using a real Cookie.
-
-PowerShell:
-
-```powershell
-$env:SECRET_UPDATE_TOKEN = "your fine-grained token"
-$env:TARGET_REPOSITORY = "OWNER/REPO"
-$env:SECRET_NAME = "TEST_AUTO_UPDATED_SECRET"
-$env:SECRET_VALUE = "hello"
-python .\scripts\update_actions_secret_with_gh.py
-```
-
-Bash:
+Test with a harmless value first:
 
 ```bash
 export SECRET_UPDATE_TOKEN="your fine-grained token"
-export TARGET_REPOSITORY="OWNER/REPO"
+export TARGET_REPOSITORY="OWNER/PRIVATE_WORKFLOW_REPO"
 export SECRET_NAME="TEST_AUTO_UPDATED_SECRET"
 export SECRET_VALUE="hello"
-python scripts/update_actions_secret_with_gh.py
+bahamut-secret-refresher
 ```
 
-Then check:
+After the test Secret can be created, connect it to the real workflow.
+
+### Limits
+
+This tool cannot make Cookies valid forever. It only saves a refreshed value when the current login state is still accepted and the workflow captures a new Cookie.
+
+It cannot handle:
+
+- full re-login requirements
+- CAPTCHA, two-factor verification, or Cloudflare challenges
+- server-side session revocation
+- expired or under-permissioned GitHub tokens
+
+## 简体中文
+
+这是一个公开工具包，提供两个命令：
 
 ```text
-Repository Settings > Secrets and variables > Actions > Secrets
+bahamut-cookie-exporter
+bahamut-secret-refresher
 ```
 
-### Export Cookie JSON
+`bahamut-cookie-exporter` 用来在本机打开 Chromium，让用户手动登录巴哈姆特后导出 Cookie JSON。  
+`bahamut-secret-refresher` 用来在 GitHub Actions 里，把 workflow 捕获到的新 Cookie 写回 GitHub Actions Secret。
 
-If you do not have Cookie JSON yet, use the built-in exporter locally. It opens Chromium and requires you to log in manually.
+公开 repository 只应该放工具程序和教学文档。不要提交真实 Cookie、Token、密码、Cookie JSON 文件、浏览器 profile 或私人 workflow。
+
+### 安装
+
+如果直接使用这个公开工具：
 
 ```bash
 python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
+```
+
+如果你 fork 或复制成自己的公开 repository，请把 `OWNER/REPO` 换成你的 repository：
+
+```bash
+python -m pip install "git+https://github.com/OWNER/REPO.git[export]"
+```
+
+### 导出 Cookie JSON
+
+在自己的电脑执行：
+
+```bash
 bahamut-cookie-exporter
 ```
 
-If you downloaded the source code, you can also run:
-
-```bash
-python -m pip install DrissionPage
-python tools/export_bahamut_cookies.py
-```
-
-The tool opens:
+工具会打开 Chromium，依次前往：
 
 ```text
 https://www.gamer.com.tw/
@@ -281,7 +334,7 @@ https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-After you log in and press Enter, it writes:
+你需要在浏览器里正常登录。每个页面确认登录后，回到终端按 Enter，工具会输出：
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
@@ -289,59 +342,39 @@ baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
 baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 ```
 
-Paste the JSON file contents into GitHub Actions Secrets in your private workflow repository. Do not commit the JSON files to any repository.
+把 JSON 文件内容完整贴到私人 workflow repository 的 GitHub Actions Secrets。不要把 JSON 文件提交到 GitHub。
 
-### Recommended Cookie Secret Layout
-
-Keep your manually exported full Cookie JSON as the recovery source, and save the automatically refreshed one-line Cookie into a separate Secret:
-
-```text
-BAHA_COOKIE_JSON       manually exported full Cookie JSON
-BAHA_REFRESHED_COOKIE  automatically updated one-line Cookie
-```
-
-On the next run, use `BAHA_REFRESHED_COOKIE` first. If it becomes invalid, delete that Secret, export a fresh Cookie JSON, and update `BAHA_COOKIE_JSON`.
-
-This avoids overwriting a complete browser Cookie JSON with a smaller one-line Cookie value.
-
-## 简体中文
-
-这个工具可以在 GitHub Actions workflow 里，把一个新的值写回指定的 GitHub Actions Secret。它适合用于 Cookie 型自动化：当签到流程成功捕获到更新后的 Cookie，就可以把它保存成 Secret，让下一次 workflow 优先使用新的 Cookie。
-
-公开仓库只应该放这个通用工具和说明文档。请不要提交真实 Cookie、Token、密码、浏览器 Cookie JSON、浏览器 profile，或私人 workflow 配置。
-
-### 功能
-
-`scripts/update_actions_secret_with_gh.py` 会从临时文件或环境变量读取 Secret 值，然后通过 GitHub CLI 更新指定 repository 的 Actions Secret。
-
-安装后也可以直接执行：
+如果你下载了源码，也可以这样执行：
 
 ```bash
-python -m pip install git+https://github.com/OWNER/REPO.git
-bahamut-secret-refresher
+python -m pip install DrissionPage
+python tools/export_bahamut_cookies.py
 ```
 
-它会：
+### 自动更新 Cookie 的原理
 
-- 拒绝写入空值
-- 在 GitHub Actions log 里遮罩 Secret 值
-- 通过标准输入把值传给 `gh secret set`
-- 不主动打印 Cookie 或 Token 内容
+第一次使用时，你手动把 `BAHA_COOKIE_JSON` 放到私人 workflow repository 的 Secrets。
 
-### 限制
+workflow 执行签到时，如果程序捕获到新的 Cookie，会把它写到 runner 的临时文件。接着 `bahamut-secret-refresher` 会把这个临时文件内容更新到：
 
-这个工具不能让网站 session 永久有效。它只能在当前 session 仍被网站接受、且流程捕获到新 Cookie 时，把新值保存起来。
+```text
+BAHA_REFRESHED_COOKIE
+```
 
-它不能处理：
+下一次 workflow 会优先使用 `BAHA_REFRESHED_COOKIE`。如果它失效，删除 `BAHA_REFRESHED_COOKIE`，重新导出 Cookie JSON，更新 `BAHA_COOKIE_JSON`。
 
-- 网站要求完整重新登录
-- CAPTCHA、二次验证、Cloudflare 验证
-- 服务器端主动撤销 session
-- GitHub Token 过期或权限不足
+建议保留这种结构：
 
-### GitHub Token 权限
+```text
+BAHA_COOKIE_JSON       手动导出的完整 Cookie JSON
+BAHA_REFRESHED_COOKIE  workflow 自动更新的一行 Cookie
+```
 
-建议创建 Fine-grained personal access token：
+不要直接用一行 Cookie 覆盖完整的 `BAHA_COOKIE_JSON`。
+
+### 创建 GitHub Token
+
+自动更新 GitHub Actions Secret 需要一个 Fine-grained personal access token。创建路径：
 
 ```text
 GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token
@@ -354,7 +387,7 @@ Repository access:
   Only selected repositories
 
 Selected repository:
-  保存 Actions Secrets 的私人 workflow repository
+  你的私人 workflow repository
 
 Repository permissions:
   Secrets: Read and write
@@ -367,91 +400,37 @@ Repository permissions:
 BAHA_SECRET_UPDATE_TOKEN
 ```
 
-### 脚本参数
+### Secret 更新命令
+
+`bahamut-secret-refresher` 需要这些环境变量：
 
 | 名称 | 必填 | 说明 |
 | --- | --- | --- |
-| `SECRET_UPDATE_TOKEN` | 是 | 具备 repository Secrets 写入权限的 Fine-grained Token。 |
+| `SECRET_UPDATE_TOKEN` | 是 | 可以更新 repository Secrets 的 Fine-grained Token。 |
 | `TARGET_REPOSITORY` | 是 | 目标 repository，格式为 `OWNER/REPO`。 |
-| `SECRET_NAME` | 是 | 要创建或更新的 Actions Secret 名称。 |
+| `SECRET_NAME` | 是 | 要创建或更新的 Secret 名称。 |
 | `SECRET_FILE` | 否 | 存放新 Secret 值的文件。 |
 | `SECRET_VALUE` | 否 | 直接提供的新 Secret 值；未设置 `SECRET_FILE` 时使用。 |
 
-Cookie refresh workflow 建议使用 `SECRET_FILE`，把捕获到的新 Cookie 放在 runner 临时文件中，避免提交到 repository。
-
-### 本地测试
-
-请先用无害值测试，不要一开始就使用真实 Cookie。
-
-PowerShell：
-
-```powershell
-$env:SECRET_UPDATE_TOKEN = "your fine-grained token"
-$env:TARGET_REPOSITORY = "OWNER/REPO"
-$env:SECRET_NAME = "TEST_AUTO_UPDATED_SECRET"
-$env:SECRET_VALUE = "hello"
-python .\scripts\update_actions_secret_with_gh.py
-```
-
-Bash：
+先用无害值测试：
 
 ```bash
 export SECRET_UPDATE_TOKEN="your fine-grained token"
-export TARGET_REPOSITORY="OWNER/REPO"
+export TARGET_REPOSITORY="OWNER/PRIVATE_WORKFLOW_REPO"
 export SECRET_NAME="TEST_AUTO_UPDATED_SECRET"
 export SECRET_VALUE="hello"
-python scripts/update_actions_secret_with_gh.py
+bahamut-secret-refresher
 ```
 
-测试后到这里确认：
+确认测试 Secret 可以创建后，再接入真实 workflow。
 
-```text
-Repository Settings > Secrets and variables > Actions > Secrets
-```
+### 限制
 
-### 导出 Cookie JSON
+这个工具不能保证 Cookie 永久有效。它只能在当前登录状态仍被网站接受、且 workflow 捕获到新 Cookie 时，帮你把新值保存起来。
 
-如果还没有 Cookie JSON，可以在本机使用内置工具导出。这个步骤会打开 Chromium，需要你在浏览器里手动登录。
+它不能处理：
 
-```bash
-python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
-bahamut-cookie-exporter
-```
-
-如果你是下载源码，也可以执行：
-
-```bash
-python -m pip install DrissionPage
-python tools/export_bahamut_cookies.py
-```
-
-工具会依次打开：
-
-```text
-https://www.gamer.com.tw/
-https://guild.gamer.com.tw/
-https://ani.gamer.com.tw/
-```
-
-登录并按 Enter 后，会输出：
-
-```text
-baha_cookie_www.json   -> BAHA_COOKIE_JSON
-baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
-baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
-```
-
-把 JSON 文件内容贴到 private workflow repository 的 GitHub Actions Secrets。不要把 JSON 文件提交到任何 repository。
-
-### 建议 Cookie Secret 结构
-
-保留手动导出的完整 Cookie JSON 作为恢复来源，另存一个 workflow 自动更新的一行 Cookie：
-
-```text
-BAHA_COOKIE_JSON       手动导出的完整 Cookie JSON
-BAHA_REFRESHED_COOKIE  workflow 自动更新的一行 Cookie
-```
-
-下次运行时优先使用 `BAHA_REFRESHED_COOKIE`。如果它失效，删除这个 Secret，重新导出 Cookie JSON 并更新 `BAHA_COOKIE_JSON`。
-
-这样可以避免把完整 Cookie JSON 覆盖成不完整的一行 Cookie。
+- 网站要求完整重新登录
+- CAPTCHA、二次验证或 Cloudflare 验证
+- 服务器端主动撤销 session
+- GitHub Token 过期或权限不足
