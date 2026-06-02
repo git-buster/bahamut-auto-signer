@@ -1,16 +1,24 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "bahamut-secret-refresher-helper"
+name = "bahamut-auto-signer"
 version = "0.1.0"
-description = "Helper script for updating GitHub Actions Secrets from workflow runs."
-requires-python = ">=3.10"
+description = "Bahamut check-in, Cookie export, and GitHub Secret refresh tools."
 readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests==2.32.3",
+]
 
 [project.scripts]
-bahamut-secret-refresher = "bahamut_secret_refresher.update_actions_secret:main"
+baha-auto-signer = "scripts.bahamut_signin:main"
 bahamut-cookie-exporter = "bahamut_secret_refresher.export_bahamut_cookies:main"
+bahamut-secret-refresher = "bahamut_secret_refresher.update_actions_secret:main"
 
 [project.optional-dependencies]
 export = ["DrissionPage"]
 
-[tool.pytest.ini_options]
-testpaths = []
+[tool.setuptools.packages.find]
+include = ["scripts*", "bahamut_secret_refresher*"]

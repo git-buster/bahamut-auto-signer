@@ -1,42 +1,137 @@
-# Bahamut Secret Refresher Helper
+﻿# Bahamut Auto Signer
+
+Bahamut Auto Signer is a Python command-line tool for running Bahamut daily
+check-ins locally or from GitHub Actions.
+
+It supports daily sign-in, guild sign-in, optional Ani-Gamer daily quiz attempts,
+GitHub Actions summaries, and optional Discord / Telegram notifications.
+
+Languages: [繁體中文](#繁體中文) | [简体中文](#简体中文) | [English](#english)
 
 ## 繁體中文
 
-這是一個公開工具包，提供兩個命令：
+### 功能
 
-```text
-bahamut-cookie-exporter
-bahamut-secret-refresher
-```
+- 巴哈姆特每日簽到。
+- 公會簽到，預設開啟。
+- 動畫瘋每日答題，預設關閉。
+- 廣告加倍入口偵測與手動提醒。
+- GitHub Actions Summary 輸出。
+- 可選 Discord / Telegram 通知。
+- 支援一般 Cookie 字串與瀏覽器匯出的 Cookie JSON。
+- 同一個公開包也提供 `bahamut-cookie-exporter` 與 `bahamut-secret-refresher`。
 
-`bahamut-cookie-exporter` 用來在本機開啟 Chromium，讓使用者手動登入巴哈姆特後匯出 Cookie JSON。  
-`bahamut-secret-refresher` 用來在 GitHub Actions 裡，把 workflow 捕獲到的新 Cookie 寫回 GitHub Actions Secret。
-
-公開 repository 只應該放工具程式與教學文件。不要提交真實 Cookie、Token、密碼、Cookie JSON 檔案、瀏覽器 profile 或私人 workflow。
+廣告加倍只會偵測與提醒，不會自動觀看廣告、繞過驗證或偽造廣告完成請求。
 
 ### 安裝
 
-如果直接使用這個公開工具：
+從 GitHub 安裝：
 
 ```bash
-python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
+python -m pip install git+https://github.com/git-buster/bahamut-auto-signer.git
 ```
 
-如果你 fork 或複製成自己的公開 repository，請把 `OWNER/REPO` 換成你的 repository：
+從原始碼安裝：
 
 ```bash
-python -m pip install "git+https://github.com/OWNER/REPO.git[export]"
+git clone https://github.com/git-buster/bahamut-auto-signer.git
+cd bahamut-auto-signer
+python -m pip install .
 ```
+
+### 本機使用
+
+設定 Cookie 後執行：
+
+```bash
+export BAHA_COOKIE_JSON='貼上 Cookie JSON'
+baha-auto-signer
+```
+
+Windows PowerShell：
+
+```powershell
+$env:BAHA_COOKIE_JSON = '貼上 Cookie JSON'
+baha-auto-signer
+```
+
+如果只想先測試公會簽到，也建議同時設定公會 Cookie：
+
+```powershell
+$env:BAHA_GUILD_COOKIE_JSON = '貼上 guild.gamer.com.tw 的 Cookie JSON'
+```
+
+### GitHub Actions 使用
+
+建議把 GitHub Actions 放在 private repository，因為 Secrets 裡會保存你的 Cookie。
+
+1. 在 GitHub 建立一個 private repository。
+2. 建立 `.github/workflows/bahamut-signin.yml`。
+3. 貼上下面的 workflow。
+4. 到 **Settings > Secrets and variables > Actions** 設定 Secrets。
+5. 到 **Actions > Bahamut Sign In > Run workflow** 手動測試一次。
+
+```yaml
+name: Bahamut Sign In
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  signin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BAHA_COOKIE: ${{ secrets.BAHA_COOKIE }}
+      BAHA_COOKIE_JSON: ${{ secrets.BAHA_COOKIE_JSON }}
+      BAHA_GUILD_COOKIE: ${{ secrets.BAHA_GUILD_COOKIE }}
+      BAHA_GUILD_COOKIE_JSON: ${{ secrets.BAHA_GUILD_COOKIE_JSON }}
+      BAHA_ANIME_COOKIE: ${{ secrets.BAHA_ANIME_COOKIE }}
+      BAHA_ANIME_COOKIE_JSON: ${{ secrets.BAHA_ANIME_COOKIE_JSON }}
+      ENABLE_GUILD_CHECKIN: ${{ vars.ENABLE_GUILD_CHECKIN || 'true' }}
+      ENABLE_ANIME_QUIZ: ${{ vars.ENABLE_ANIME_QUIZ || 'false' }}
+      GUILD_CHECKIN_DELAY_SECONDS: ${{ vars.GUILD_CHECKIN_DELAY_SECONDS || '1.0' }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install baha-auto-signer
+        run: python -m pip install git+https://github.com/git-buster/bahamut-auto-signer.git
+
+      - name: Run Bahamut check-in
+        run: baha-auto-signer
+```
+
+`0 1 * * *` 是 UTC 01:00，對應台灣、香港、新加坡每天 09:00。
 
 ### 匯出 Cookie JSON
 
-在自己的電腦執行：
+推薦使用 Cookie JSON，而不是只從 Network 複製一行 Cookie。JSON 會保留 domain、path、expires、httpOnly、secure 等欄位，對公會和動畫瘋比較穩定。
+
+先安裝匯出工具需要的套件：
 
 ```bash
-bahamut-cookie-exporter
+python -m pip install DrissionPage
 ```
 
-工具會開啟 Chromium，依序前往：
+在已安裝或已 clone 的專案目錄執行：
+
+```bash
+python tools/export_bahamut_cookies.py
+```
+
+腳本會開啟 Chromium，依序打開：
 
 ```text
 https://www.gamer.com.tw/
@@ -45,7 +140,7 @@ https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-你需要在瀏覽器裡正常登入。每個頁面確認登入後，回到終端機按 Enter。daily 階段請先在巴哈主站右上角打開每日簽到入口，再按 Enter，工具會輸出：
+每個頁面確認已登入後，回到終端按 Enter。daily 階段請先在巴哈主站右上角打開每日簽到入口，再按 Enter。完成後會產生：
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
@@ -54,295 +149,176 @@ baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
 baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 ```
 
-把 JSON 檔案內容完整貼到私人 workflow repository 的 GitHub Actions Secrets。不要把 JSON 檔案提交到 GitHub。
+把 JSON 檔案內容貼到 GitHub Actions Secrets。不要把 Cookie JSON 提交到 GitHub。
 
-如果你下載了原始碼，也可以這樣執行：
+### Secrets
 
-```bash
-python -m pip install DrissionPage
-python tools/export_bahamut_cookies.py
-```
+至少設定其中一個：
 
-### 自動更新 Cookie 的原理
+| 名稱 | 說明 |
+| --- | --- |
+| `BAHA_COOKIE_JSON` | 從主站登入狀態匯出的完整 Cookie JSON，建議使用。 |
+| `BAHA_COOKIE` | 從瀏覽器 Network Request Headers 複製的一行 Cookie，作為相容方案。 |
+| `BAHA_DAILY_COOKIE_JSON` | 從每日簽到頁匯出的完整 Cookie JSON。每日簽到出現 `NO_LOGIN` 時建議使用。 |
+| `BAHA_DAILY_COOKIE` | 每日簽到專用的一行 Cookie。 |
 
-第一次使用時，你手動把 `BAHA_COOKIE_JSON` 放到私人 workflow repository 的 Secrets。
+可選：
 
-workflow 執行簽到時，如果程式捕獲到新的 Cookie，會把它寫到 runner 的暫存檔。接著 `bahamut-secret-refresher` 會把這個暫存檔內容更新到：
+| 名稱 | 說明 |
+| --- | --- |
+| `BAHA_GUILD_COOKIE_JSON` | 從 `guild.gamer.com.tw` 匯出的 Cookie JSON，建議公會簽到使用。 |
+| `BAHA_GUILD_COOKIE` | 公會網域專用的一行 Cookie。 |
+| `BAHA_ANIME_COOKIE_JSON` | 從 `ani.gamer.com.tw` 匯出的 Cookie JSON，開啟動畫瘋答題時建議使用。 |
+| `BAHA_ANIME_COOKIE` | 動畫瘋網域專用的一行 Cookie。 |
+| `DISCORD_WEBHOOK_URL` | 將結果發送到 Discord webhook。 |
+| `TELEGRAM_BOT_TOKEN` | Telegram Bot token。 |
+| `TELEGRAM_CHAT_ID` | Telegram chat id。 |
 
-```text
-BAHA_REFRESHED_COOKIE
-BAHA_REFRESHED_DAILY_COOKIE
-BAHA_REFRESHED_GUILD_COOKIE
-```
+### Variables
 
-下一次 workflow 會優先使用 `BAHA_REFRESHED_COOKIE`、`BAHA_REFRESHED_DAILY_COOKIE` 和 `BAHA_REFRESHED_GUILD_COOKIE`。如果其中一個失效，刪除失效的 Secret，重新匯出 Cookie JSON，更新對應的 `BAHA_COOKIE_JSON`、`BAHA_DAILY_COOKIE_JSON` 或 `BAHA_GUILD_COOKIE_JSON`。
+可在 GitHub Actions Variables 設定：
 
-建議保留這種結構：
-
-```text
-BAHA_COOKIE_JSON       手動匯出的完整 Cookie JSON
-BAHA_REFRESHED_COOKIE  workflow 自動更新的一行 Cookie
-BAHA_DAILY_COOKIE_JSON 每日簽到專用 Cookie JSON
-BAHA_REFRESHED_DAILY_COOKIE  workflow 自動更新的一行每日簽到 Cookie
-BAHA_GUILD_COOKIE_JSON 手動匯出的完整公會 Cookie JSON
-BAHA_REFRESHED_GUILD_COOKIE  workflow 自動更新的一行公會 Cookie
-```
-
-不要直接用一行 Cookie 覆蓋完整的 `BAHA_COOKIE_JSON`。
-
-### 建立 GitHub Token
-
-自動更新 GitHub Actions Secret 需要一個 Fine-grained personal access token。建立路徑：
-
-```text
-GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token
-```
-
-建議設定：
-
-```text
-Repository access:
-  Only selected repositories
-
-Selected repository:
-  你的私人 workflow repository
-
-Repository permissions:
-  Secrets: Read and write
-  Metadata: Read-only
-```
-
-把 Token 保存到私人 workflow repository 的 Secret：
-
-```text
-BAHA_SECRET_UPDATE_TOKEN
-```
-
-### Secret 更新命令
-
-`bahamut-secret-refresher` 需要這些環境變數：
-
-| 名稱 | 必填 | 說明 |
+| 名稱 | 預設 | 說明 |
 | --- | --- | --- |
-| `SECRET_UPDATE_TOKEN` | 是 | 可以更新 repository Secrets 的 Fine-grained Token。 |
-| `TARGET_REPOSITORY` | 是 | 目標 repository，格式為 `OWNER/REPO`。 |
-| `SECRET_NAME` | 是 | 要建立或更新的 Secret 名稱。 |
-| `SECRET_FILE` | 否 | 存放新 Secret 值的檔案。 |
-| `SECRET_VALUE` | 否 | 直接提供的新 Secret 值；未設定 `SECRET_FILE` 時使用。 |
+| `ENABLE_GUILD_CHECKIN` | `true` | 是否執行公會簽到。 |
+| `ENABLE_ANIME_QUIZ` | `false` | 是否嘗試動畫瘋每日答題。 |
+| `GUILD_CHECKIN_DELAY_SECONDS` | `1.0` | 每個公會簽到之間等待幾秒；如果公會容易要求重新登入，可調到 `2` 或 `3`。 |
 
-先用無害值測試：
+### 結果與排錯
 
-```bash
-export SECRET_UPDATE_TOKEN="your fine-grained token"
-export TARGET_REPOSITORY="OWNER/PRIVATE_WORKFLOW_REPO"
-export SECRET_NAME="TEST_AUTO_UPDATED_SECRET"
-export SECRET_VALUE="hello"
-bahamut-secret-refresher
-```
+- 每日簽到會送出簽到請求，並再查一次狀態，避免只看 API 回傳造成誤判。
+- 公會簽到會辨識 `簽到成功`、`已簽到`、`獲得`、`GP`、`經驗`、`巴幣` 等成功文字。
+- `請先登入`、`重新登入`、`login` 等會視為失敗。
+- 只要啟用的項目有任一失敗，GitHub Action 會回傳失敗狀態。
+- 如果公會簽到提示要重新登入，優先重新匯出並更新 `BAHA_GUILD_COOKIE_JSON`。
+- 如果 GitHub-hosted runner 經常觸發風控，可以考慮使用 self-hosted runner。
 
-確認測試 Secret 可以建立後，再接入真實 workflow。
-
-### 限制
-
-這個工具不能保證 Cookie 永久有效。它只能在目前登入狀態仍被網站接受、且 workflow 捕獲到新 Cookie 時，幫你把新值保存起來。
-
-它不能處理：
-
-- 網站要求完整重新登入
-- CAPTCHA、二次驗證或 Cloudflare 驗證
-- 伺服器端主動撤銷 session
-- GitHub Token 過期或權限不足
-
-## English
-
-This public package provides two commands:
-
-```text
-bahamut-cookie-exporter
-bahamut-secret-refresher
-```
-
-`bahamut-cookie-exporter` opens Chromium locally so users can log in manually and export Bahamut Cookie JSON.  
-`bahamut-secret-refresher` updates a GitHub Actions Secret from a workflow after a refreshed Cookie is captured.
-
-The public repository should contain only tools and user documentation. Do not commit real Cookies, tokens, passwords, Cookie JSON files, browser profiles, or private workflows.
-
-### Install
-
-If you use this public tool directly:
-
-```bash
-python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
-```
-
-If you fork or copy it to your own public repository, replace `OWNER/REPO`:
-
-```bash
-python -m pip install "git+https://github.com/OWNER/REPO.git[export]"
-```
-
-### Export Cookie JSON
-
-Run locally:
-
-```bash
-bahamut-cookie-exporter
-```
-
-The tool opens Chromium and visits:
-
-```text
-https://www.gamer.com.tw/
-https://www.gamer.com.tw/  (during the daily step, open the top-right daily sign-in entry first)
-https://guild.gamer.com.tw/
-https://ani.gamer.com.tw/
-```
-
-Log in normally in the browser. After each page is logged in, return to the terminal and press Enter. During the daily step, open the top-right daily sign-in entry on the Bahamut main site before pressing Enter. The tool writes:
-
-```text
-baha_cookie_www.json   -> BAHA_COOKIE_JSON
-baha_cookie_daily.json -> BAHA_DAILY_COOKIE_JSON
-baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
-baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
-```
-
-Paste the JSON file contents into GitHub Actions Secrets in your private workflow repository. Do not commit JSON files to GitHub.
-
-If you downloaded the source code, you can also run:
-
-```bash
-python -m pip install DrissionPage
-python tools/export_bahamut_cookies.py
-```
-
-### How Automatic Cookie Refresh Works
-
-On the first setup, manually save `BAHA_COOKIE_JSON` in your private workflow repository Secrets.
-
-When the workflow runs, the sign-in program may capture a newer Cookie and write it to a temporary runner file. `bahamut-secret-refresher` then writes that temporary file back to:
-
-```text
-BAHA_REFRESHED_COOKIE
-BAHA_REFRESHED_DAILY_COOKIE
-BAHA_REFRESHED_GUILD_COOKIE
-```
-
-The next workflow run should use `BAHA_REFRESHED_COOKIE`, `BAHA_REFRESHED_DAILY_COOKIE`, and `BAHA_REFRESHED_GUILD_COOKIE` first. If one becomes invalid, delete the invalid Secret, export a fresh Cookie JSON, and update the matching `BAHA_COOKIE_JSON`, `BAHA_DAILY_COOKIE_JSON`, or `BAHA_GUILD_COOKIE_JSON`.
-
-Recommended layout:
-
-```text
-BAHA_COOKIE_JSON       manually exported full Cookie JSON
-BAHA_REFRESHED_COOKIE  automatically updated one-line Cookie
-BAHA_DAILY_COOKIE_JSON daily check-in Cookie JSON
-BAHA_REFRESHED_DAILY_COOKIE  automatically updated one-line daily check-in Cookie
-BAHA_GUILD_COOKIE_JSON manually exported full guild Cookie JSON
-BAHA_REFRESHED_GUILD_COOKIE  automatically updated one-line guild Cookie
-```
-
-Do not overwrite full `BAHA_COOKIE_JSON` with a smaller one-line Cookie.
-
-### Create A GitHub Token
-
-Updating GitHub Actions Secrets requires a Fine-grained personal access token. Create it here:
-
-```text
-GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token
-```
-
-Recommended settings:
-
-```text
-Repository access:
-  Only selected repositories
-
-Selected repository:
-  Your private workflow repository
-
-Repository permissions:
-  Secrets: Read and write
-  Metadata: Read-only
-```
-
-Save the token in the private workflow repository Secret:
-
-```text
-BAHA_SECRET_UPDATE_TOKEN
-```
-
-### Secret Update Command
-
-`bahamut-secret-refresher` uses these environment variables:
-
-| Name | Required | Description |
-| --- | --- | --- |
-| `SECRET_UPDATE_TOKEN` | Yes | Fine-grained token allowed to update repository Secrets. |
-| `TARGET_REPOSITORY` | Yes | Target repository in `OWNER/REPO` format. |
-| `SECRET_NAME` | Yes | Secret name to create or update. |
-| `SECRET_FILE` | No | File containing the new Secret value. |
-| `SECRET_VALUE` | No | Direct Secret value, used when `SECRET_FILE` is not set. |
-
-Test with a harmless value first:
-
-```bash
-export SECRET_UPDATE_TOKEN="your fine-grained token"
-export TARGET_REPOSITORY="OWNER/PRIVATE_WORKFLOW_REPO"
-export SECRET_NAME="TEST_AUTO_UPDATED_SECRET"
-export SECRET_VALUE="hello"
-bahamut-secret-refresher
-```
-
-After the test Secret can be created, connect it to the real workflow.
-
-### Limits
-
-This tool cannot make Cookies valid forever. It only saves a refreshed value when the current login state is still accepted and the workflow captures a new Cookie.
-
-It cannot handle:
-
-- full re-login requirements
-- CAPTCHA, two-factor verification, or Cloudflare challenges
-- server-side session revocation
-- expired or under-permissioned GitHub tokens
+Cookie JSON 比單行 Cookie 更完整，但不能保證永遠有效。若巴哈伺服器端撤銷 session、Cloudflare 重新驗證、或 runner IP 被風控，仍可能需要重新登入並匯出。
 
 ## 简体中文
 
-这是一个公开工具包，提供两个命令：
+### 功能
 
-```text
-bahamut-cookie-exporter
-bahamut-secret-refresher
-```
+- 巴哈姆特每日签到。
+- 公会签到，默认开启。
+- 动画疯每日答题，默认关闭。
+- 广告加倍入口检测与手动提醒。
+- GitHub Actions Summary 输出。
+- 可选 Discord / Telegram 通知。
+- 支持普通 Cookie 字符串和浏览器导出的 Cookie JSON。
+- 同一个公开包也提供 `bahamut-cookie-exporter` 和 `bahamut-secret-refresher`。
 
-`bahamut-cookie-exporter` 用来在本机打开 Chromium，让用户手动登录巴哈姆特后导出 Cookie JSON。  
-`bahamut-secret-refresher` 用来在 GitHub Actions 里，把 workflow 捕获到的新 Cookie 写回 GitHub Actions Secret。
-
-公开 repository 只应该放工具程序和教学文档。不要提交真实 Cookie、Token、密码、Cookie JSON 文件、浏览器 profile 或私人 workflow。
+广告加倍只会检测和提醒，不会自动观看广告、绕过验证或伪造广告完成请求。
 
 ### 安装
 
-如果直接使用这个公开工具：
+从 GitHub 安装：
 
 ```bash
-python -m pip install "git+https://github.com/git-buster/bahamut-auto-signer.git[export]"
+python -m pip install git+https://github.com/git-buster/bahamut-auto-signer.git
 ```
 
-如果你 fork 或复制成自己的公开 repository，请把 `OWNER/REPO` 换成你的 repository：
+从源码安装：
 
 ```bash
-python -m pip install "git+https://github.com/OWNER/REPO.git[export]"
+git clone https://github.com/git-buster/bahamut-auto-signer.git
+cd bahamut-auto-signer
+python -m pip install .
 ```
+
+### 本地使用
+
+设置 Cookie 后执行：
+
+```bash
+export BAHA_COOKIE_JSON='贴上 Cookie JSON'
+baha-auto-signer
+```
+
+Windows PowerShell：
+
+```powershell
+$env:BAHA_COOKIE_JSON = '贴上 Cookie JSON'
+baha-auto-signer
+```
+
+如果想测试公会签到，也建议同时设置公会 Cookie：
+
+```powershell
+$env:BAHA_GUILD_COOKIE_JSON = '贴上 guild.gamer.com.tw 的 Cookie JSON'
+```
+
+### GitHub Actions 使用
+
+建议把 GitHub Actions 放在 private repository，因为 Secrets 里会保存你的 Cookie。
+
+1. 在 GitHub 创建一个 private repository。
+2. 创建 `.github/workflows/bahamut-signin.yml`。
+3. 粘贴下面的 workflow。
+4. 到 **Settings > Secrets and variables > Actions** 设置 Secrets。
+5. 到 **Actions > Bahamut Sign In > Run workflow** 手动测试一次。
+
+```yaml
+name: Bahamut Sign In
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  signin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BAHA_COOKIE: ${{ secrets.BAHA_COOKIE }}
+      BAHA_COOKIE_JSON: ${{ secrets.BAHA_COOKIE_JSON }}
+      BAHA_GUILD_COOKIE: ${{ secrets.BAHA_GUILD_COOKIE }}
+      BAHA_GUILD_COOKIE_JSON: ${{ secrets.BAHA_GUILD_COOKIE_JSON }}
+      BAHA_ANIME_COOKIE: ${{ secrets.BAHA_ANIME_COOKIE }}
+      BAHA_ANIME_COOKIE_JSON: ${{ secrets.BAHA_ANIME_COOKIE_JSON }}
+      ENABLE_GUILD_CHECKIN: ${{ vars.ENABLE_GUILD_CHECKIN || 'true' }}
+      ENABLE_ANIME_QUIZ: ${{ vars.ENABLE_ANIME_QUIZ || 'false' }}
+      GUILD_CHECKIN_DELAY_SECONDS: ${{ vars.GUILD_CHECKIN_DELAY_SECONDS || '1.0' }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install baha-auto-signer
+        run: python -m pip install git+https://github.com/git-buster/bahamut-auto-signer.git
+
+      - name: Run Bahamut check-in
+        run: baha-auto-signer
+```
+
+`0 1 * * *` 是 UTC 01:00，对应台湾、香港、新加坡每天 09:00。
 
 ### 导出 Cookie JSON
 
-在自己的电脑执行：
+推荐使用 Cookie JSON，而不是只从 Network 复制一行 Cookie。JSON 会保留 domain、path、expires、httpOnly、secure 等字段，对公会和动画疯比较稳定。
+
+先安装导出工具需要的套件：
 
 ```bash
-bahamut-cookie-exporter
+python -m pip install DrissionPage
 ```
 
-工具会打开 Chromium，依次前往：
+在已安装或已 clone 的项目目录执行：
+
+```bash
+python tools/export_bahamut_cookies.py
+```
+
+脚本会打开 Chromium，依次打开：
 
 ```text
 https://www.gamer.com.tw/
@@ -351,7 +327,7 @@ https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-你需要在浏览器里正常登录。每个页面确认登录后，回到终端按 Enter。daily 阶段请先在巴哈主站右上角打开每日签到入口，再按 Enter，工具会输出：
+每个页面确认已登录后，回到终端按 Enter。daily 阶段请先在巴哈主站右上角打开每日签到入口，再按 Enter。完成后会生成：
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
@@ -360,101 +336,244 @@ baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
 baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 ```
 
-把 JSON 文件内容完整贴到私人 workflow repository 的 GitHub Actions Secrets。不要把 JSON 文件提交到 GitHub。
+把 JSON 文件内容贴到 GitHub Actions Secrets。不要把 Cookie JSON 提交到 GitHub。
 
-如果你下载了源码，也可以这样执行：
+### Secrets
+
+至少设置其中一个：
+
+| 名称 | 说明 |
+| --- | --- |
+| `BAHA_COOKIE_JSON` | 从主站登录状态导出的完整 Cookie JSON，建议使用。 |
+| `BAHA_COOKIE` | 从浏览器 Network Request Headers 复制的一行 Cookie，作为兼容方案。 |
+| `BAHA_DAILY_COOKIE_JSON` | 从每日签到页导出的完整 Cookie JSON。每日签到出现 `NO_LOGIN` 时建议使用。 |
+| `BAHA_DAILY_COOKIE` | 每日签到专用的一行 Cookie。 |
+
+可选：
+
+| 名称 | 说明 |
+| --- | --- |
+| `BAHA_GUILD_COOKIE_JSON` | 从 `guild.gamer.com.tw` 导出的 Cookie JSON，建议公会签到使用。 |
+| `BAHA_GUILD_COOKIE` | 公会域名专用的一行 Cookie。 |
+| `BAHA_ANIME_COOKIE_JSON` | 从 `ani.gamer.com.tw` 导出的 Cookie JSON，开启动画疯答题时建议使用。 |
+| `BAHA_ANIME_COOKIE` | 动画疯域名专用的一行 Cookie。 |
+| `DISCORD_WEBHOOK_URL` | 将结果发送到 Discord webhook。 |
+| `TELEGRAM_BOT_TOKEN` | Telegram Bot token。 |
+| `TELEGRAM_CHAT_ID` | Telegram chat id。 |
+
+### Variables
+
+可在 GitHub Actions Variables 设置：
+
+| 名称 | 默认 | 说明 |
+| --- | --- | --- |
+| `ENABLE_GUILD_CHECKIN` | `true` | 是否执行公会签到。 |
+| `ENABLE_ANIME_QUIZ` | `false` | 是否尝试动画疯每日答题。 |
+| `GUILD_CHECKIN_DELAY_SECONDS` | `1.0` | 每个公会签到之间等待几秒；如果公会容易要求重新登录，可以调到 `2` 或 `3`。 |
+
+### 结果与排错
+
+- 每日签到会送出签到请求，并再查一次状态，避免只看 API 返回造成误判。
+- 公会签到会识别 `签到成功`、`已签到`、`获得`、`GP`、`经验`、`巴币` 等成功文字。
+- `请先登录`、`重新登录`、`login` 等会视为失败。
+- 只要启用的项目有任一失败，GitHub Action 会返回失败状态。
+- 如果公会签到提示要重新登录，优先重新导出并更新 `BAHA_GUILD_COOKIE_JSON`。
+- 如果 GitHub-hosted runner 经常触发风控，可以考虑使用 self-hosted runner。
+
+Cookie JSON 比单行 Cookie 更完整，但不能保证一直有效。如果巴哈服务器端撤销 session、Cloudflare 重新验证、或 runner IP 被风控，仍可能需要重新登录并导出。
+
+## English
+
+### Features
+
+- Bahamut daily check-in.
+- Guild check-in, enabled by default.
+- Ani-Gamer daily quiz attempt, disabled by default.
+- Ad bonus entry detection with a manual reminder.
+- GitHub Actions Summary output.
+- Optional Discord / Telegram notifications.
+- Supports both plain Cookie headers and browser-exported Cookie JSON.
+- The same public package also provides `bahamut-cookie-exporter` and `bahamut-secret-refresher`.
+
+Ad bonus handling is limited to detection and reminders. This tool does not
+watch ads, bypass ad verification, or fake ad-completion requests.
+
+### Installation
+
+Install from GitHub:
+
+```bash
+python -m pip install git+https://github.com/git-buster/bahamut-auto-signer.git
+```
+
+Install from source:
+
+```bash
+git clone https://github.com/git-buster/bahamut-auto-signer.git
+cd bahamut-auto-signer
+python -m pip install .
+```
+
+### Local Usage
+
+Set a Cookie secret and run:
+
+```bash
+export BAHA_COOKIE_JSON='paste Cookie JSON here'
+baha-auto-signer
+```
+
+Windows PowerShell:
+
+```powershell
+$env:BAHA_COOKIE_JSON = 'paste Cookie JSON here'
+baha-auto-signer
+```
+
+For guild check-in testing, also set the guild-domain Cookie JSON:
+
+```powershell
+$env:BAHA_GUILD_COOKIE_JSON = 'paste guild.gamer.com.tw Cookie JSON here'
+```
+
+### GitHub Actions Usage
+
+Use a private GitHub repository for the workflow because GitHub Actions Secrets
+will contain your Cookie.
+
+1. Create a private GitHub repository.
+2. Create `.github/workflows/bahamut-signin.yml`.
+3. Paste the workflow below.
+4. Configure Secrets in **Settings > Secrets and variables > Actions**.
+5. Open **Actions > Bahamut Sign In > Run workflow** and run it once manually.
+
+```yaml
+name: Bahamut Sign In
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  signin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BAHA_COOKIE: ${{ secrets.BAHA_COOKIE }}
+      BAHA_COOKIE_JSON: ${{ secrets.BAHA_COOKIE_JSON }}
+      BAHA_GUILD_COOKIE: ${{ secrets.BAHA_GUILD_COOKIE }}
+      BAHA_GUILD_COOKIE_JSON: ${{ secrets.BAHA_GUILD_COOKIE_JSON }}
+      BAHA_ANIME_COOKIE: ${{ secrets.BAHA_ANIME_COOKIE }}
+      BAHA_ANIME_COOKIE_JSON: ${{ secrets.BAHA_ANIME_COOKIE_JSON }}
+      ENABLE_GUILD_CHECKIN: ${{ vars.ENABLE_GUILD_CHECKIN || 'true' }}
+      ENABLE_ANIME_QUIZ: ${{ vars.ENABLE_ANIME_QUIZ || 'false' }}
+      GUILD_CHECKIN_DELAY_SECONDS: ${{ vars.GUILD_CHECKIN_DELAY_SECONDS || '1.0' }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install baha-auto-signer
+        run: python -m pip install git+https://github.com/git-buster/bahamut-auto-signer.git
+
+      - name: Run Bahamut check-in
+        run: baha-auto-signer
+```
+
+The cron expression `0 1 * * *` runs at 01:00 UTC, which is 09:00 in Taiwan,
+Hong Kong, and Singapore.
+
+### Export Cookie JSON
+
+Cookie JSON is recommended over a one-line Cookie copied from Network. JSON
+keeps fields such as domain, path, expires, httpOnly, and secure, which is more
+reliable for guild and Ani-Gamer requests.
+
+Install the browser export dependency:
 
 ```bash
 python -m pip install DrissionPage
+```
+
+Run this from an installed or cloned project directory:
+
+```bash
 python tools/export_bahamut_cookies.py
 ```
 
-### 自动更新 Cookie 的原理
-
-第一次使用时，你手动把 `BAHA_COOKIE_JSON` 放到私人 workflow repository 的 Secrets。
-
-workflow 执行签到时，如果程序捕获到新的 Cookie，会把它写到 runner 的临时文件。接着 `bahamut-secret-refresher` 会把这个临时文件内容更新到：
+The script opens Chromium and visits:
 
 ```text
-BAHA_REFRESHED_COOKIE
-BAHA_REFRESHED_DAILY_COOKIE
-BAHA_REFRESHED_GUILD_COOKIE
+https://www.gamer.com.tw/
+https://www.gamer.com.tw/  (during the daily step, open the top-right daily sign-in entry first)
+https://guild.gamer.com.tw/
+https://ani.gamer.com.tw/
 ```
 
-下一次 workflow 会优先使用 `BAHA_REFRESHED_COOKIE`、`BAHA_REFRESHED_DAILY_COOKIE` 和 `BAHA_REFRESHED_GUILD_COOKIE`。如果其中一个失效，删除失效的 Secret，重新导出 Cookie JSON，更新对应的 `BAHA_COOKIE_JSON`、`BAHA_DAILY_COOKIE_JSON` 或 `BAHA_GUILD_COOKIE_JSON`。
-
-建议保留这种结构：
+After each page is logged in, return to the terminal and press Enter. During the daily step, open the top-right daily sign-in entry on the Bahamut main site before pressing Enter. It writes:
 
 ```text
-BAHA_COOKIE_JSON       手动导出的完整 Cookie JSON
-BAHA_REFRESHED_COOKIE  workflow 自动更新的一行 Cookie
-BAHA_DAILY_COOKIE_JSON 每日签到专用 Cookie JSON
-BAHA_REFRESHED_DAILY_COOKIE  workflow 自动更新的一行每日签到 Cookie
-BAHA_GUILD_COOKIE_JSON 手动导出的完整公会 Cookie JSON
-BAHA_REFRESHED_GUILD_COOKIE  workflow 自动更新的一行公会 Cookie
+baha_cookie_www.json   -> BAHA_COOKIE_JSON
+baha_cookie_daily.json -> BAHA_DAILY_COOKIE_JSON
+baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
+baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 ```
 
-不要直接用一行 Cookie 覆盖完整的 `BAHA_COOKIE_JSON`。
+Paste the JSON file contents into GitHub Actions Secrets. Do not commit Cookie
+JSON files to GitHub.
 
-### 创建 GitHub Token
+### Secrets
 
-自动更新 GitHub Actions Secret 需要一个 Fine-grained personal access token。创建路径：
+Set at least one:
 
-```text
-GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token
-```
+| Name | Description |
+| --- | --- |
+| `BAHA_COOKIE_JSON` | Full Cookie JSON exported from a logged-in main site session. Recommended. |
+| `BAHA_COOKIE` | One-line Cookie copied from browser Network Request Headers. Backward compatible. |
+| `BAHA_DAILY_COOKIE_JSON` | Full Cookie JSON exported from the daily check-in page. Recommended when daily check-in returns `NO_LOGIN`. |
+| `BAHA_DAILY_COOKIE` | One-line Cookie dedicated to daily check-in. |
 
-建议设置：
+Optional:
 
-```text
-Repository access:
-  Only selected repositories
+| Name | Description |
+| --- | --- |
+| `BAHA_GUILD_COOKIE_JSON` | Cookie JSON exported from `guild.gamer.com.tw`. Recommended for guild check-in. |
+| `BAHA_GUILD_COOKIE` | One-line guild-domain Cookie. |
+| `BAHA_ANIME_COOKIE_JSON` | Cookie JSON exported from `ani.gamer.com.tw`. Recommended when Ani-Gamer quiz is enabled. |
+| `BAHA_ANIME_COOKIE` | One-line Ani-Gamer-domain Cookie. |
+| `DISCORD_WEBHOOK_URL` | Sends the result summary to a Discord webhook. |
+| `TELEGRAM_BOT_TOKEN` | Telegram Bot token. |
+| `TELEGRAM_CHAT_ID` | Telegram chat id. |
 
-Selected repository:
-  你的私人 workflow repository
+### Variables
 
-Repository permissions:
-  Secrets: Read and write
-  Metadata: Read-only
-```
+Set these as GitHub Actions Variables:
 
-把 Token 保存到私人 workflow repository 的 Secret：
-
-```text
-BAHA_SECRET_UPDATE_TOKEN
-```
-
-### Secret 更新命令
-
-`bahamut-secret-refresher` 需要这些环境变量：
-
-| 名称 | 必填 | 说明 |
+| Name | Default | Description |
 | --- | --- | --- |
-| `SECRET_UPDATE_TOKEN` | 是 | 可以更新 repository Secrets 的 Fine-grained Token。 |
-| `TARGET_REPOSITORY` | 是 | 目标 repository，格式为 `OWNER/REPO`。 |
-| `SECRET_NAME` | 是 | 要创建或更新的 Secret 名称。 |
-| `SECRET_FILE` | 否 | 存放新 Secret 值的文件。 |
-| `SECRET_VALUE` | 否 | 直接提供的新 Secret 值；未设置 `SECRET_FILE` 时使用。 |
+| `ENABLE_GUILD_CHECKIN` | `true` | Whether to run guild check-in. |
+| `ENABLE_ANIME_QUIZ` | `false` | Whether to try the Ani-Gamer daily quiz. |
+| `GUILD_CHECKIN_DELAY_SECONDS` | `1.0` | Seconds to wait between guild check-ins; try `2` or `3` if guild requests are sensitive. |
 
-先用无害值测试：
+### Results And Troubleshooting
 
-```bash
-export SECRET_UPDATE_TOKEN="your fine-grained token"
-export TARGET_REPOSITORY="OWNER/PRIVATE_WORKFLOW_REPO"
-export SECRET_NAME="TEST_AUTO_UPDATED_SECRET"
-export SECRET_VALUE="hello"
-bahamut-secret-refresher
-```
+- Daily check-in sends the check-in request and then verifies completion with a status check.
+- Guild check-in recognizes success text such as `簽到成功`, `已簽到`, `獲得`, `GP`, `經驗`, and `巴幣`.
+- Login-required text such as `請先登入`, `重新登入`, and `login` is treated as failure.
+- If any enabled task fails, the GitHub Action exits with a failure status.
+- If guild check-in asks you to log in again, refresh `BAHA_GUILD_COOKIE_JSON` first.
+- If GitHub-hosted runners frequently trigger risk checks, consider a self-hosted runner.
 
-确认测试 Secret 可以创建后，再接入真实 workflow。
-
-### 限制
-
-这个工具不能保证 Cookie 永久有效。它只能在当前登录状态仍被网站接受、且 workflow 捕获到新 Cookie 时，帮你把新值保存起来。
-
-它不能处理：
-
-- 网站要求完整重新登录
-- CAPTCHA、二次验证或 Cloudflare 验证
-- 服务器端主动撤销 session
-- GitHub Token 过期或权限不足
+Cookie JSON is more complete than a one-line Cookie, but it still cannot last
+forever. If Bahamut invalidates the server-side session, Cloudflare asks for a
+new challenge, or the runner IP is flagged, you may need to log in again and
+export fresh Cookie JSON.
