@@ -40,12 +40,12 @@ bahamut-cookie-exporter
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/signin.php
+https://www.gamer.com.tw/  （daily 階段請先打開右上角每日簽到入口）
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-你需要在瀏覽器裡正常登入。每個頁面確認登入後，回到終端機按 Enter，工具會輸出：
+你需要在瀏覽器裡正常登入。每個頁面確認登入後，回到終端機按 Enter。daily 階段請先在巴哈主站右上角打開每日簽到入口，再按 Enter，工具會輸出：
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
@@ -193,12 +193,12 @@ The tool opens Chromium and visits:
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/signin.php
+https://www.gamer.com.tw/  (during the daily step, open the top-right daily sign-in entry first)
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-Log in normally in the browser. After each page is logged in, return to the terminal and press Enter. The tool writes:
+Log in normally in the browser. After each page is logged in, return to the terminal and press Enter. During the daily step, open the top-right daily sign-in entry on the Bahamut main site before pressing Enter. The tool writes:
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
@@ -346,12 +346,12 @@ bahamut-cookie-exporter
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/signin.php
+https://www.gamer.com.tw/  （daily 阶段请先打开右上角每日签到入口）
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-你需要在浏览器里正常登录。每个页面确认登录后，回到终端按 Enter，工具会输出：
+你需要在浏览器里正常登录。每个页面确认登录后，回到终端按 Enter。daily 阶段请先在巴哈主站右上角打开每日签到入口，再按 Enter，工具会输出：
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON

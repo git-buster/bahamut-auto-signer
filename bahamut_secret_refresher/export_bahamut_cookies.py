@@ -6,10 +6,15 @@ from typing import Any
 
 
 OUTPUTS = (
-    ("www", "https://www.gamer.com.tw/", "baha_cookie_www.json"),
-    ("daily", "https://www.gamer.com.tw/signin.php", "baha_cookie_daily.json"),
-    ("guild", "https://guild.gamer.com.tw/", "baha_cookie_guild.json"),
-    ("ani", "https://ani.gamer.com.tw/", "baha_cookie_ani.json"),
+    ("www", "https://www.gamer.com.tw/", "baha_cookie_www.json", "Confirm www is logged in"),
+    (
+        "daily",
+        "https://www.gamer.com.tw/",
+        "baha_cookie_daily.json",
+        "Open the top-right daily sign-in entry in Bahamut, confirm it is visible/logged in",
+    ),
+    ("guild", "https://guild.gamer.com.tw/", "baha_cookie_guild.json", "Confirm guild is logged in"),
+    ("ani", "https://ani.gamer.com.tw/", "baha_cookie_ani.json", "Confirm ani is logged in"),
 )
 
 
@@ -49,10 +54,10 @@ def main() -> int:
     print("After each page is fully logged in, return here and press Enter.")
 
     try:
-        for name, url, filename in OUTPUTS:
+        for name, url, filename, instruction in OUTPUTS:
             print(f"\nOpening {name}: {url}")
             page.get(url)
-            input(f"Confirm {name} is logged in, then press Enter to export...")
+            input(f"{instruction}, then press Enter to export...")
             export_current_cookies(page, output_dir / filename)
     finally:
         page.close()
