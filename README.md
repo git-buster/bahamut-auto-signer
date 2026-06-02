@@ -40,7 +40,7 @@ bahamut-cookie-exporter
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/dailySign.php
+https://www.gamer.com.tw/signin.php
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
@@ -193,7 +193,7 @@ The tool opens Chromium and visits:
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/dailySign.php
+https://www.gamer.com.tw/signin.php
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
@@ -346,7 +346,7 @@ bahamut-cookie-exporter
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/dailySign.php
+https://www.gamer.com.tw/signin.php
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```

@@ -7,7 +7,7 @@ from typing import Any
 
 OUTPUTS = (
     ("www", "https://www.gamer.com.tw/", "baha_cookie_www.json"),
-    ("daily", "https://www.gamer.com.tw/dailySign.php", "baha_cookie_daily.json"),
+    ("daily", "https://www.gamer.com.tw/signin.php", "baha_cookie_daily.json"),
     ("guild", "https://guild.gamer.com.tw/", "baha_cookie_guild.json"),
     ("ani", "https://ani.gamer.com.tw/", "baha_cookie_ani.json"),
 )
