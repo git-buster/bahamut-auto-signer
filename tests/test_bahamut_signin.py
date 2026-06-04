@@ -292,6 +292,55 @@ def test_daily_signin_retries_with_guild_cookie_on_no_login(monkeypatch):
     assert any("retrying once with BAHA_GUILD_COOKIE" in detail for detail in result.details)
 
 
+def test_daily_signin_retries_with_guild_only_cookie_if_merge_fails(monkeypatch):
+    captured = []
+    daily_session = FakeSession(
+        [
+            json_response(
+                '{"error": {"code": 401, "message": "簽到 + 100 巴幣", "status": "NO_LOGIN"}}'
+            ),
+        ]
+    )
+    merged_retry_session = FakeSession(
+        [
+            json_response(
+                '{"error": {"code": 401, "message": "請先登入", "status": "NO_LOGIN"}}'
+            ),
+        ]
+    )
+    guild_only_session = FakeSession(
+        [
+            json_response('{"error": false, "message": "OK"}'),
+            json_response(
+                '{"data": {"btnMessage": "<i class=\\"material-icons\\">check_box</i>每日簽到已達成"}}'
+            ),
+        ]
+    )
+    sessions = [daily_session, merged_retry_session, guild_only_session]
+
+    def fake_make_session(cookie):
+        captured.append(cookie)
+        return sessions.pop(0)
+
+    monkeypatch.setenv("BAHA_COOKIE_JSON", '[{"name": "shared", "value": "base"}]')
+    monkeypatch.setenv(
+        "BAHA_DAILY_COOKIE_JSON",
+        '[{"name": "daily", "value": "stale"}, {"name": "shared", "value": "daily"}]',
+    )
+    monkeypatch.setenv(
+        "BAHA_GUILD_COOKIE_JSON",
+        '[{"name": "guild", "value": "1"}, {"name": "shared", "value": "guild"}]',
+    )
+    monkeypatch.setattr(signer, "make_session", fake_make_session)
+    monkeypatch.setattr(signer, "prepare_csrf", lambda session, cookie: "token")
+
+    result = daily_signin(FakeSession([]), "base-token")
+
+    assert result.ok is True
+    assert captured[-1] == "guild=1; shared=guild"
+    assert any("BAHA_GUILD_COOKIE only" in detail for detail in result.details)
+
+
 def test_daily_signin_accepts_completed_button_state():
     data = {
         "data": {

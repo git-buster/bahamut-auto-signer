@@ -548,6 +548,32 @@ def daily_signin(session: requests.Session, token: str) -> CheckResult:
     retry_result.details = [*retry_details, *retry_result.details]
     if retry_result.ok:
         return retry_result
+
+    guild_only_cookie = normalize_cookie_header(guild_cookie)
+    if guild_only_cookie and guild_only_cookie != retry_cookie:
+        guild_only_details = [
+            *retry_result.details,
+            "Merged retry also failed; retrying once with BAHA_GUILD_COOKIE only.",
+        ]
+        guild_only_session = make_session(guild_only_cookie)
+        guild_only_token = prepare_csrf(guild_only_session, guild_only_cookie)
+        guild_only_result = run_attempt(
+            guild_only_session,
+            guild_only_token,
+            guild_only_cookie,
+            True,
+            "Daily sign retry with guild-only cookie action=1",
+        )
+        guild_only_result.details = [*guild_only_details, *guild_only_result.details]
+        if guild_only_result.ok:
+            return guild_only_result
+        retry_result = CheckResult(
+            "每日签到",
+            False,
+            f"{retry_result.message}; guild-only retry also failed: {guild_only_result.message}",
+            guild_only_result.details,
+        )
+
     return CheckResult(
         "每日签到",
         False,
