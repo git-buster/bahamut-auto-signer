@@ -455,9 +455,60 @@ def daily_signin_status(session: requests.Session, token: str) -> CheckResult:
     return CheckResult("每日签到状态", ok, message, details)
 
 
+def daily_signin_needs_cookie_retry(result: CheckResult) -> bool:
+    if result.ok:
+        return False
+    text = "\n".join([result.message, *result.details])
+    return looks_login_required(text) or "NO_LOGIN" in text or "401" in text
+
+
 def daily_signin(session: requests.Session, token: str) -> CheckResult:
     base_cookie = read_cookie_env("BAHA_COOKIE", "BAHA_COOKIE_JSON")
     daily_cookie = read_cookie_env("BAHA_DAILY_COOKIE", "BAHA_DAILY_COOKIE_JSON")
+    guild_cookie = read_cookie_env("BAHA_GUILD_COOKIE", "BAHA_GUILD_COOKIE_JSON")
+
+    def run_attempt(
+        attempt_session: requests.Session,
+        attempt_token: str,
+        original_cookie: str,
+        allow_refresh_write: bool,
+        label: str,
+    ) -> CheckResult:
+        response = attempt_session.post(
+            f"{BASE_API_URL}/user/v1/signin.php",
+            data={"action": "1"},
+            headers={"x-bahamut-csrf-token": attempt_token},
+            timeout=20,
+        )
+
+        if response.status_code in {401, 403}:
+            return CheckResult(
+                "每日签到",
+                False,
+                "Cookie is invalid or expired.",
+                response_debug_details(label, response),
+            )
+
+        response.raise_for_status()
+        data = parse_json_response(response)
+        details = response_debug_details(label, response, data)
+        message = clean_bahamut_message(api_message(data))
+        ok = daily_signin_succeeded(data, message)
+        if ok:
+            status = daily_signin_status(attempt_session, attempt_token)
+            details.extend(status.details)
+            if not status.ok:
+                return CheckResult("每日签到", False, status.message, [message, *details])
+        elif "簽到 +" in message or "签到 +" in message:
+            message = f"Daily check-in was not completed; current prompt: {message}"
+        if ok and allow_refresh_write and write_refreshed_cookie_file(
+            original_cookie,
+            attempt_session.headers.get("Cookie", ""),
+            DAILY_COOKIE_REFRESH_FILE_ENV,
+        ):
+            details.append("Refreshed BAHA_DAILY_COOKIE was captured for the workflow.")
+        return CheckResult("每日签到", ok, message, details)
+
     original_daily_cookie = session.headers.get("Cookie", "")
     if daily_cookie:
         merged_cookie = merge_cookie_headers(base_cookie, daily_cookie) if base_cookie else daily_cookie
@@ -465,39 +516,44 @@ def daily_signin(session: requests.Session, token: str) -> CheckResult:
         session = make_session(merged_cookie)
         token = prepare_csrf(session, merged_cookie)
 
-    response = session.post(
-        f"{BASE_API_URL}/user/v1/signin.php",
-        data={"action": "1"},
-        headers={"x-bahamut-csrf-token": token},
-        timeout=20,
-    )
-    if response.status_code in {401, 403}:
-        return CheckResult(
-            "每日签到",
-            False,
-            "Cookie is invalid or expired.",
-            response_debug_details("Daily sign action=1", response),
-        )
-
-    response.raise_for_status()
-    data = parse_json_response(response)
-    details = response_debug_details("Daily sign action=1", response, data)
-    message = clean_bahamut_message(api_message(data))
-    ok = daily_signin_succeeded(data, message)
-    if ok:
-        status = daily_signin_status(session, token)
-        details.extend(status.details)
-        if not status.ok:
-            return CheckResult("每日签到", False, status.message, [message, *details])
-    elif "簽到 +" in message or "签到 +" in message:
-        message = f"Daily check-in was not completed; current prompt: {message}"
-    if ok and daily_cookie and write_refreshed_cookie_file(
+    result = run_attempt(
+        session,
+        token,
         original_daily_cookie,
-        session.headers.get("Cookie", ""),
-        DAILY_COOKIE_REFRESH_FILE_ENV,
-    ):
-        details.append("Refreshed BAHA_DAILY_COOKIE was captured for the workflow.")
-    return CheckResult("每日签到", ok, message, details)
+        bool(daily_cookie),
+        "Daily sign action=1",
+    )
+    if not daily_signin_needs_cookie_retry(result) or not guild_cookie:
+        return result
+
+    retry_cookie = original_daily_cookie
+    for cookie in (base_cookie, daily_cookie, guild_cookie):
+        retry_cookie = merge_cookie_headers(retry_cookie, cookie)
+    if not retry_cookie or retry_cookie == original_daily_cookie:
+        return result
+
+    retry_details = [
+        *result.details,
+        "Daily sign-in looked logged out; retrying once with BAHA_GUILD_COOKIE merged.",
+    ]
+    retry_session = make_session(retry_cookie)
+    retry_token = prepare_csrf(retry_session, retry_cookie)
+    retry_result = run_attempt(
+        retry_session,
+        retry_token,
+        retry_cookie,
+        True,
+        "Daily sign retry with guild cookie action=1",
+    )
+    retry_result.details = [*retry_details, *retry_result.details]
+    if retry_result.ok:
+        return retry_result
+    return CheckResult(
+        "每日签到",
+        False,
+        f"{result.message}; retry also failed: {retry_result.message}",
+        retry_result.details,
+    )
 
 
 def detect_ad_bonus(session: requests.Session) -> CheckResult:
