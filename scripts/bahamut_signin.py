@@ -16,7 +16,6 @@ BASE_API_URL = "https://api.gamer.com.tw"
 BASE_GUILD_URL = "https://guild.gamer.com.tw"
 BASE_ANI_URL = "https://ani.gamer.com.tw"
 COOKIE_REFRESH_FILE_ENV = "BAHA_REFRESHED_COOKIE_PATH"
-DAILY_COOKIE_REFRESH_FILE_ENV = "BAHA_REFRESHED_DAILY_COOKIE_PATH"
 GUILD_COOKIE_REFRESH_FILE_ENV = "BAHA_REFRESHED_GUILD_COOKIE_PATH"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -450,6 +449,8 @@ def daily_signin_status(session: requests.Session, token: str) -> CheckResult:
     details = response_debug_details("Daily status action=2", response, data)
     message = clean_bahamut_message(api_message(data))
     ok = daily_signin_succeeded(data, message)
+    if ok:
+        apply_response_cookies(session, response)
     if not ok:
         message = f"Could not verify that daily check-in was completed: {message}"
     return CheckResult("每日签到状态", ok, message, details)
@@ -464,7 +465,6 @@ def daily_signin_needs_cookie_retry(result: CheckResult) -> bool:
 
 def daily_signin(session: requests.Session, token: str) -> CheckResult:
     base_cookie = read_cookie_env("BAHA_COOKIE", "BAHA_COOKIE_JSON")
-    daily_cookie = read_cookie_env("BAHA_DAILY_COOKIE", "BAHA_DAILY_COOKIE_JSON")
     guild_cookie = read_cookie_env("BAHA_GUILD_COOKIE", "BAHA_GUILD_COOKIE_JSON")
 
     def run_attempt(
@@ -495,6 +495,8 @@ def daily_signin(session: requests.Session, token: str) -> CheckResult:
         message = clean_bahamut_message(api_message(data))
         ok = daily_signin_succeeded(data, message)
         if ok:
+            apply_response_cookies(attempt_session, response)
+        if ok:
             status = daily_signin_status(attempt_session, attempt_token)
             details.extend(status.details)
             if not status.ok:
@@ -504,23 +506,17 @@ def daily_signin(session: requests.Session, token: str) -> CheckResult:
         if ok and allow_refresh_write and write_refreshed_cookie_file(
             original_cookie,
             attempt_session.headers.get("Cookie", ""),
-            DAILY_COOKIE_REFRESH_FILE_ENV,
+            COOKIE_REFRESH_FILE_ENV,
         ):
-            details.append("Refreshed BAHA_DAILY_COOKIE was captured for the workflow.")
+            details.append("Refreshed BAHA_COOKIE was captured from daily sign-in.")
         return CheckResult("每日签到", ok, message, details)
 
     original_daily_cookie = session.headers.get("Cookie", "")
-    if daily_cookie:
-        merged_cookie = merge_cookie_headers(base_cookie, daily_cookie) if base_cookie else daily_cookie
-        original_daily_cookie = merged_cookie
-        session = make_session(merged_cookie)
-        token = prepare_csrf(session, merged_cookie)
-
     result = run_attempt(
         session,
         token,
         original_daily_cookie,
-        bool(daily_cookie),
+        True,
         "Daily sign action=1",
     )
     allow_guild_cookie_retry = env_bool("ALLOW_DAILY_GUILD_COOKIE_FALLBACK", False)
@@ -528,7 +524,7 @@ def daily_signin(session: requests.Session, token: str) -> CheckResult:
         return result
 
     retry_cookie = original_daily_cookie
-    for cookie in (base_cookie, daily_cookie, guild_cookie):
+    for cookie in (base_cookie, guild_cookie):
         retry_cookie = merge_cookie_headers(retry_cookie, cookie)
     if not retry_cookie or retry_cookie == original_daily_cookie:
         return result

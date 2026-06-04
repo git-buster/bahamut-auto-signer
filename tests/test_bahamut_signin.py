@@ -224,30 +224,27 @@ def test_daily_signin_reports_reward_prompt_as_incomplete():
     assert any("Daily sign action=1 data" in detail for detail in result.details)
 
 
-def test_daily_signin_prefers_daily_cookie(monkeypatch):
-    captured = {}
+def test_daily_signin_writes_main_cookie_refresh(monkeypatch, tmp_path):
+    refresh_path = tmp_path / "refreshed_cookie.txt"
     session = FakeSession(
         [
-            json_response('{"data": "<i class=\\"material-icons\\">check</i>簽到 + 100 巴幣"}'),
+            json_response('{"error": false, "message": "OK"}'),
+            json_response(
+                '{"data": {"btnMessage": "<i class=\\"material-icons\\">check_box</i>每日簽到已達成"}}'
+            ),
         ]
     )
-
-    def fake_make_session(cookie):
-        captured["cookie"] = cookie
-        return session
+    response_cookies = RequestsCookieJar()
+    response_cookies.set("main_refresh", "new")
+    session.responses[0].cookies = response_cookies
 
     monkeypatch.setenv("BAHA_COOKIE_JSON", '[{"name": "shared", "value": "base"}]')
-    monkeypatch.setenv(
-        "BAHA_DAILY_COOKIE_JSON",
-        '[{"name": "daily", "value": "1"}, {"name": "shared", "value": "daily"}]',
-    )
-    monkeypatch.setattr(signer, "make_session", fake_make_session)
-    monkeypatch.setattr(signer, "prepare_csrf", lambda session, cookie: "daily-token")
+    monkeypatch.setenv("BAHA_REFRESHED_COOKIE_PATH", str(refresh_path))
 
-    result = daily_signin(FakeSession([]), "base-token")
+    result = daily_signin(session, "base-token")
 
-    assert result.ok is False
-    assert captured["cookie"] == "shared=daily; daily=1"
+    assert result.ok is True
+    assert refresh_path.read_text(encoding="utf-8").strip() == "BAHAID=user; main_refresh=new"
 
 
 def test_daily_signin_retries_with_guild_cookie_on_no_login(monkeypatch):
@@ -267,17 +264,13 @@ def test_daily_signin_retries_with_guild_cookie_on_no_login(monkeypatch):
             ),
         ]
     )
-    sessions = [daily_session, retry_session]
+    sessions = [retry_session]
 
     def fake_make_session(cookie):
         captured.append(cookie)
         return sessions.pop(0)
 
     monkeypatch.setenv("BAHA_COOKIE_JSON", '[{"name": "shared", "value": "base"}]')
-    monkeypatch.setenv(
-        "BAHA_DAILY_COOKIE_JSON",
-        '[{"name": "daily", "value": "1"}, {"name": "shared", "value": "daily"}]',
-    )
     monkeypatch.setenv(
         "BAHA_GUILD_COOKIE_JSON",
         '[{"name": "guild", "value": "1"}, {"name": "shared", "value": "guild"}]',
@@ -286,10 +279,10 @@ def test_daily_signin_retries_with_guild_cookie_on_no_login(monkeypatch):
     monkeypatch.setattr(signer, "make_session", fake_make_session)
     monkeypatch.setattr(signer, "prepare_csrf", lambda session, cookie: "token")
 
-    result = daily_signin(FakeSession([]), "base-token")
+    result = daily_signin(daily_session, "base-token")
 
     assert result.ok is True
-    assert captured[-1] == "shared=guild; daily=1; guild=1"
+    assert captured[-1] == "BAHAID=user; shared=guild; guild=1"
     assert any("retrying once with BAHA_GUILD_COOKIE" in detail for detail in result.details)
 
 
@@ -317,17 +310,13 @@ def test_daily_signin_retries_with_guild_only_cookie_if_merge_fails(monkeypatch)
             ),
         ]
     )
-    sessions = [daily_session, merged_retry_session, guild_only_session]
+    sessions = [merged_retry_session, guild_only_session]
 
     def fake_make_session(cookie):
         captured.append(cookie)
         return sessions.pop(0)
 
     monkeypatch.setenv("BAHA_COOKIE_JSON", '[{"name": "shared", "value": "base"}]')
-    monkeypatch.setenv(
-        "BAHA_DAILY_COOKIE_JSON",
-        '[{"name": "daily", "value": "stale"}, {"name": "shared", "value": "daily"}]',
-    )
     monkeypatch.setenv(
         "BAHA_GUILD_COOKIE_JSON",
         '[{"name": "guild", "value": "1"}, {"name": "shared", "value": "guild"}]',
@@ -336,7 +325,7 @@ def test_daily_signin_retries_with_guild_only_cookie_if_merge_fails(monkeypatch)
     monkeypatch.setattr(signer, "make_session", fake_make_session)
     monkeypatch.setattr(signer, "prepare_csrf", lambda session, cookie: "token")
 
-    result = daily_signin(FakeSession([]), "base-token")
+    result = daily_signin(daily_session, "base-token")
 
     assert result.ok is True
     assert captured[-1] == "guild=1; shared=guild"

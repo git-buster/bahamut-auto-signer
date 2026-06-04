@@ -7,12 +7,6 @@ from typing import Any
 
 OUTPUTS = (
     ("www", "https://www.gamer.com.tw/", "baha_cookie_www.json", "Confirm www is logged in"),
-    (
-        "daily",
-        "https://www.gamer.com.tw/",
-        "baha_cookie_daily.json",
-        "Open the top-right daily sign-in entry in Bahamut, confirm it is visible/logged in",
-    ),
     ("guild", "https://guild.gamer.com.tw/", "baha_cookie_guild.json", "Confirm guild is logged in"),
     ("ani", "https://ani.gamer.com.tw/", "baha_cookie_ani.json", "Confirm ani is logged in"),
 )
@@ -64,7 +58,6 @@ def main() -> int:
 
     print("\nDone. Add the JSON contents to GitHub Secrets:")
     print("baha_cookie_www.json   -> BAHA_COOKIE_JSON")
-    print("baha_cookie_daily.json -> BAHA_DAILY_COOKIE_JSON")
     print("baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON")
     print("baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON")
     return 0

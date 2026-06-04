@@ -135,16 +135,14 @@ python tools/export_bahamut_cookies.py
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/  （daily 階段請先打開右上角每日簽到入口）
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-每個頁面確認已登入後，回到終端按 Enter。daily 階段請先在巴哈主站右上角打開每日簽到入口，再按 Enter。完成後會產生：
+每個頁面確認已登入後，回到終端按 Enter。每日簽到使用主站 Cookie，不需要另外匯出 daily Cookie。完成後會產生：
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
-baha_cookie_daily.json -> BAHA_DAILY_COOKIE_JSON
 baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
 baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 ```
@@ -159,8 +157,6 @@ baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 | --- | --- |
 | `BAHA_COOKIE_JSON` | 從主站登入狀態匯出的完整 Cookie JSON，建議使用。 |
 | `BAHA_COOKIE` | 從瀏覽器 Network Request Headers 複製的一行 Cookie，作為相容方案。 |
-| `BAHA_DAILY_COOKIE_JSON` | 從每日簽到頁匯出的完整 Cookie JSON。每日簽到出現 `NO_LOGIN` 時建議使用。 |
-| `BAHA_DAILY_COOKIE` | 每日簽到專用的一行 Cookie。 |
 
 可選：
 
@@ -322,16 +318,14 @@ python tools/export_bahamut_cookies.py
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/  （daily 阶段请先打开右上角每日签到入口）
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-每个页面确认已登录后，回到终端按 Enter。daily 阶段请先在巴哈主站右上角打开每日签到入口，再按 Enter。完成后会生成：
+每个页面确认已登录后，回到终端按 Enter。每日签到使用主站 Cookie，不需要另外导出 daily Cookie。完成后会生成：
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
-baha_cookie_daily.json -> BAHA_DAILY_COOKIE_JSON
 baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
 baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 ```
@@ -346,8 +340,6 @@ baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 | --- | --- |
 | `BAHA_COOKIE_JSON` | 从主站登录状态导出的完整 Cookie JSON，建议使用。 |
 | `BAHA_COOKIE` | 从浏览器 Network Request Headers 复制的一行 Cookie，作为兼容方案。 |
-| `BAHA_DAILY_COOKIE_JSON` | 从每日签到页导出的完整 Cookie JSON。每日签到出现 `NO_LOGIN` 时建议使用。 |
-| `BAHA_DAILY_COOKIE` | 每日签到专用的一行 Cookie。 |
 
 可选：
 
@@ -514,16 +506,14 @@ The script opens Chromium and visits:
 
 ```text
 https://www.gamer.com.tw/
-https://www.gamer.com.tw/  (during the daily step, open the top-right daily sign-in entry first)
 https://guild.gamer.com.tw/
 https://ani.gamer.com.tw/
 ```
 
-After each page is logged in, return to the terminal and press Enter. During the daily step, open the top-right daily sign-in entry on the Bahamut main site before pressing Enter. It writes:
+After each page is logged in, return to the terminal and press Enter. Daily check-in uses the main-site Cookie, so there is no separate daily Cookie export. It writes:
 
 ```text
 baha_cookie_www.json   -> BAHA_COOKIE_JSON
-baha_cookie_daily.json -> BAHA_DAILY_COOKIE_JSON
 baha_cookie_guild.json -> BAHA_GUILD_COOKIE_JSON
 baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 ```
@@ -539,8 +529,6 @@ Set at least one:
 | --- | --- |
 | `BAHA_COOKIE_JSON` | Full Cookie JSON exported from a logged-in main site session. Recommended. |
 | `BAHA_COOKIE` | One-line Cookie copied from browser Network Request Headers. Backward compatible. |
-| `BAHA_DAILY_COOKIE_JSON` | Full Cookie JSON exported from the daily check-in page. Recommended when daily check-in returns `NO_LOGIN`. |
-| `BAHA_DAILY_COOKIE` | One-line Cookie dedicated to daily check-in. |
 
 Optional:
 
