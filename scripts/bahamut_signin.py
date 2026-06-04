@@ -523,7 +523,8 @@ def daily_signin(session: requests.Session, token: str) -> CheckResult:
         bool(daily_cookie),
         "Daily sign action=1",
     )
-    if not daily_signin_needs_cookie_retry(result) or not guild_cookie:
+    allow_guild_cookie_retry = env_bool("ALLOW_DAILY_GUILD_COOKIE_FALLBACK", False)
+    if not daily_signin_needs_cookie_retry(result) or not guild_cookie or not allow_guild_cookie_retry:
         return result
 
     retry_cookie = original_daily_cookie

@@ -282,6 +282,7 @@ def test_daily_signin_retries_with_guild_cookie_on_no_login(monkeypatch):
         "BAHA_GUILD_COOKIE_JSON",
         '[{"name": "guild", "value": "1"}, {"name": "shared", "value": "guild"}]',
     )
+    monkeypatch.setenv("ALLOW_DAILY_GUILD_COOKIE_FALLBACK", "true")
     monkeypatch.setattr(signer, "make_session", fake_make_session)
     monkeypatch.setattr(signer, "prepare_csrf", lambda session, cookie: "token")
 
@@ -331,6 +332,7 @@ def test_daily_signin_retries_with_guild_only_cookie_if_merge_fails(monkeypatch)
         "BAHA_GUILD_COOKIE_JSON",
         '[{"name": "guild", "value": "1"}, {"name": "shared", "value": "guild"}]',
     )
+    monkeypatch.setenv("ALLOW_DAILY_GUILD_COOKIE_FALLBACK", "true")
     monkeypatch.setattr(signer, "make_session", fake_make_session)
     monkeypatch.setattr(signer, "prepare_csrf", lambda session, cookie: "token")
 
