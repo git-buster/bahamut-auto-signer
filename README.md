@@ -93,8 +93,10 @@ jobs:
       BAHA_GUILD_COOKIE_JSON: ${{ secrets.BAHA_GUILD_COOKIE_JSON }}
       BAHA_ANIME_COOKIE: ${{ secrets.BAHA_ANIME_COOKIE }}
       BAHA_ANIME_COOKIE_JSON: ${{ secrets.BAHA_ANIME_COOKIE_JSON }}
+      ENABLE_DAILY_CHECKIN: ${{ vars.ENABLE_DAILY_CHECKIN || 'true' }}
       ENABLE_GUILD_CHECKIN: ${{ vars.ENABLE_GUILD_CHECKIN || 'true' }}
       ENABLE_ANIME_QUIZ: ${{ vars.ENABLE_ANIME_QUIZ || 'false' }}
+      ALLOW_DAILY_GUILD_COOKIE_FALLBACK: ${{ vars.ALLOW_DAILY_GUILD_COOKIE_FALLBACK || 'false' }}
       GUILD_CHECKIN_DELAY_SECONDS: ${{ vars.GUILD_CHECKIN_DELAY_SECONDS || '1.0' }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -176,8 +178,10 @@ baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 
 | 名稱 | 預設 | 說明 |
 | --- | --- | --- |
+| `ENABLE_DAILY_CHECKIN` | `true` | 是否執行每日簽到。 |
 | `ENABLE_GUILD_CHECKIN` | `true` | 是否執行公會簽到。 |
 | `ENABLE_ANIME_QUIZ` | `false` | 是否嘗試動畫瘋每日答題。 |
+| `ALLOW_DAILY_GUILD_COOKIE_FALLBACK` | `false` | 高風險相容選項；一般不要開啟。 |
 | `GUILD_CHECKIN_DELAY_SECONDS` | `1.0` | 每個公會簽到之間等待幾秒；如果公會容易要求重新登入，可調到 `2` 或 `3`。 |
 
 ### 結果與排錯
@@ -276,8 +280,10 @@ jobs:
       BAHA_GUILD_COOKIE_JSON: ${{ secrets.BAHA_GUILD_COOKIE_JSON }}
       BAHA_ANIME_COOKIE: ${{ secrets.BAHA_ANIME_COOKIE }}
       BAHA_ANIME_COOKIE_JSON: ${{ secrets.BAHA_ANIME_COOKIE_JSON }}
+      ENABLE_DAILY_CHECKIN: ${{ vars.ENABLE_DAILY_CHECKIN || 'true' }}
       ENABLE_GUILD_CHECKIN: ${{ vars.ENABLE_GUILD_CHECKIN || 'true' }}
       ENABLE_ANIME_QUIZ: ${{ vars.ENABLE_ANIME_QUIZ || 'false' }}
+      ALLOW_DAILY_GUILD_COOKIE_FALLBACK: ${{ vars.ALLOW_DAILY_GUILD_COOKIE_FALLBACK || 'false' }}
       GUILD_CHECKIN_DELAY_SECONDS: ${{ vars.GUILD_CHECKIN_DELAY_SECONDS || '1.0' }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -359,8 +365,10 @@ baha_cookie_ani.json   -> BAHA_ANIME_COOKIE_JSON
 
 | 名称 | 默认 | 说明 |
 | --- | --- | --- |
+| `ENABLE_DAILY_CHECKIN` | `true` | 是否执行每日签到。 |
 | `ENABLE_GUILD_CHECKIN` | `true` | 是否执行公会签到。 |
 | `ENABLE_ANIME_QUIZ` | `false` | 是否尝试动画疯每日答题。 |
+| `ALLOW_DAILY_GUILD_COOKIE_FALLBACK` | `false` | 高风险兼容选项；一般不要开启。 |
 | `GUILD_CHECKIN_DELAY_SECONDS` | `1.0` | 每个公会签到之间等待几秒；如果公会容易要求重新登录，可以调到 `2` 或 `3`。 |
 
 ### 结果与排错
@@ -461,8 +469,10 @@ jobs:
       BAHA_GUILD_COOKIE_JSON: ${{ secrets.BAHA_GUILD_COOKIE_JSON }}
       BAHA_ANIME_COOKIE: ${{ secrets.BAHA_ANIME_COOKIE }}
       BAHA_ANIME_COOKIE_JSON: ${{ secrets.BAHA_ANIME_COOKIE_JSON }}
+      ENABLE_DAILY_CHECKIN: ${{ vars.ENABLE_DAILY_CHECKIN || 'true' }}
       ENABLE_GUILD_CHECKIN: ${{ vars.ENABLE_GUILD_CHECKIN || 'true' }}
       ENABLE_ANIME_QUIZ: ${{ vars.ENABLE_ANIME_QUIZ || 'false' }}
+      ALLOW_DAILY_GUILD_COOKIE_FALLBACK: ${{ vars.ALLOW_DAILY_GUILD_COOKIE_FALLBACK || 'false' }}
       GUILD_CHECKIN_DELAY_SECONDS: ${{ vars.GUILD_CHECKIN_DELAY_SECONDS || '1.0' }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -548,8 +558,10 @@ Set these as GitHub Actions Variables:
 
 | Name | Default | Description |
 | --- | --- | --- |
+| `ENABLE_DAILY_CHECKIN` | `true` | Whether to run daily check-in. |
 | `ENABLE_GUILD_CHECKIN` | `true` | Whether to run guild check-in. |
 | `ENABLE_ANIME_QUIZ` | `false` | Whether to try the Ani-Gamer daily quiz. |
+| `ALLOW_DAILY_GUILD_COOKIE_FALLBACK` | `false` | High-risk compatibility option; normally leave disabled. |
 | `GUILD_CHECKIN_DELAY_SECONDS` | `1.0` | Seconds to wait between guild check-ins; try `2` or `3` if guild requests are sensitive. |
 
 ### Results And Troubleshooting

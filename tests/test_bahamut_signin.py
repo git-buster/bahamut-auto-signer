@@ -33,6 +33,7 @@ from scripts.bahamut_signin import (
     require_cookie,
     response_debug_details,
     write_refreshed_cookie_file,
+    write_result_status_file,
 )
 
 
@@ -193,6 +194,14 @@ def test_write_refreshed_cookie_file_uses_custom_env(monkeypatch, tmp_path):
         "BAHA_REFRESHED_GUILD_COOKIE_PATH",
     ) is True
     assert cookie_path.read_text(encoding="utf-8").strip() == "a=1; guild_session=2"
+
+
+def test_write_result_status_file_contains_only_component_booleans(monkeypatch, tmp_path):
+    status_path = tmp_path / "status.json"
+    monkeypatch.setenv("BAHA_RESULT_STATUS_PATH", str(status_path))
+
+    assert write_result_status_file(False, True) is True
+    assert status_path.read_text(encoding="utf-8").strip() == '{"daily": false, "guild": true}'
 
 
 def test_daily_signin_fails_when_status_cannot_verify_completion():

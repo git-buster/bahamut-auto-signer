@@ -17,6 +17,7 @@ BASE_GUILD_URL = "https://guild.gamer.com.tw"
 BASE_ANI_URL = "https://ani.gamer.com.tw"
 COOKIE_REFRESH_FILE_ENV = "BAHA_REFRESHED_COOKIE_PATH"
 GUILD_COOKIE_REFRESH_FILE_ENV = "BAHA_REFRESHED_GUILD_COOKIE_PATH"
+RESULT_STATUS_FILE_ENV = "BAHA_RESULT_STATUS_PATH"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -1026,10 +1027,26 @@ def write_refreshed_cookie_file(
     return True
 
 
+def write_result_status_file(daily_ok: bool, guild_ok: bool) -> bool:
+    path = os.getenv(RESULT_STATUS_FILE_ENV, "").strip()
+    if not path:
+        return False
+    try:
+        with open(path, "w", encoding="utf-8", newline="\n") as status_file:
+            json.dump({"daily": bool(daily_ok), "guild": bool(guild_ok)}, status_file)
+            status_file.write("\n")
+    except OSError as exc:
+        print(f"Could not write result status file: {exc}", file=sys.stderr)
+        return False
+    return True
+
+
 def main() -> int:
     results: list[CheckResult] = []
     cookie = ""
     session: requests.Session | None = None
+    daily_result = CheckResult("每日签到", False, "Not run.")
+    guild_result = CheckResult("公会签到", False, "Not run.")
 
     try:
         cookie = require_cookie()
@@ -1041,8 +1058,12 @@ def main() -> int:
         else:
             guild_result = CheckResult("公会签到", True, "Skipped by configuration.")
 
-        daily_result = daily_signin(session, token)
-        ad_result = detect_ad_bonus(session)
+        if env_bool("ENABLE_DAILY_CHECKIN", True):
+            daily_result = daily_signin(session, token)
+            ad_result = detect_ad_bonus(session)
+        else:
+            daily_result = CheckResult("每日签到", True, "Skipped by configuration.")
+            ad_result = CheckResult("广告加倍提醒", True, "Skipped with daily check-in.")
         results.extend([daily_result, ad_result, guild_result])
 
         if env_bool("ENABLE_ANIME_QUIZ", False):
@@ -1072,6 +1093,7 @@ def main() -> int:
     summary = result_to_markdown(results)
     print(summary)
     write_github_summary(summary)
+    write_result_status_file(daily_result.ok, guild_result.ok)
 
     for sender in (send_discord, send_telegram):
         try:
